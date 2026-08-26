@@ -1,0 +1,2348 @@
+saya adalah mahaiswa jurusan sistem informasi pemula dalam bidang "web programmer", buatkan saya tutorial perlahan untuk membuat Aplikasi perangkat lunak enablon pusat data center yang berhubungan dengan semua matakuliah saya dengan Arsitektur Umum Aplikasi :
+1. Database: MySQL
+2. Backend: Node.js dengan Express.js
+3. Frontend: HTML, CSS, JavaScript (Vue.js)
+mari kita mulai dari step pertama dan step selanjutnya akan saya beritahukan jika saya sudah mengerti. 
+
+============================================
+
+Saya akan mulai dengan Step 1 yang paling fundamental: menyiapkan lingkungan kerja, struktur folder proyek, dan koneksi MySQL yang aman. Setelah Step 1 selesai dan terverifikasi, Anda bilang “sudah” lalu kita lanjut Step 2 (membuat API CRUD pertama).
+
+
+Baik. Kita mulai dari **Step 1**: menyiapkan lingkungan kerja dan membuat proyek backend Express yang **terhubung ke MySQL**. Ini fondasi untuk semua mata kuliah Anda karena melibatkan konsep basis data, pemrograman web, arsitektur, dan keamanan dasar.
+
+Saya akan buat pelan pelan. Anda kerjakan persis urutannya. Di akhir Step 1 ada “cek berhasil” supaya Anda yakin sudah benar.
+
+---
+
+## Step 1. Setup lingkungan dan koneksi MySQL untuk backend
+
+### 1. Siapkan tools yang wajib ada
+
+Pastikan sudah terpasang:
+
+1. **Node.js LTS** (sekalian npm)
+2. **MySQL Server** (Anda sudah pasang)
+3. Editor: **VS Code** (disarankan)
+
+Cek di Command Prompt:
+
+```bat
+node -v
+npm -v
+```
+
+Kalau keluar versi, aman.
+
+---
+
+### 2. Buat database khusus untuk aplikasi
+
+Masuk ke MySQL (bisa dari CMD atau phpMyAdmin). Di MySQL prompt, jalankan:
+
+```sql
+CREATE DATABASE enablon_dc
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE enablon_dc;
+```
+
+Lalu buat user khusus aplikasi (disarankan, jangan pakai root untuk aplikasi):
+
+```sql
+CREATE USER 'enablon_app'@'localhost' IDENTIFIED BY 'Enablon#2026!App';
+GRANT ALL PRIVILEGES ON enablon_dc.* TO 'enablon_app'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Catat:
+
+* username: `enablon_app`
+* password: `Enablon#2026!App`
+* database: `enablon_dc`
+
+---
+
+### 3. Buat folder proyek backend
+
+Di folder kerja Anda (misal Desktop), jalankan:
+
+```bat
+cd %USERPROFILE%\Desktop
+mkdir enablon-data-center
+cd enablon-data-center
+mkdir backend
+cd backend
+```
+
+---
+
+### 4. Inisialisasi project Node.js + install dependency inti
+
+Jalankan:
+
+```bat
+npm init -y
+npm install express mysql2 dotenv cors
+npm install -D nodemon
+```
+
+Penjelasan singkat:
+
+* **express**: framework backend
+* **mysql2**: koneksi MySQL
+* **dotenv**: simpan config rahasia (password) di file `.env`
+* **cors**: agar frontend bisa akses API
+* **nodemon**: auto reload saat coding
+
+---
+
+### 5. Buat struktur file backend yang rapi
+
+Di folder `backend`, buat file berikut:
+
+* `.env`
+* `server.js`
+* `db.js`
+
+#### 5.1 Isi file `.env`
+
+Buat `.env` (di folder backend) dan isi:
+
+```env
+PORT=3001
+DB_HOST=localhost
+DB_USER=enablon_app
+DB_PASSWORD=Enablon#2026!App
+DB_NAME=enablon_dc
+```
+
+#### 5.2 Isi file `db.js`
+
+Buat `db.js` dan isi:
+
+```js
+const mysql = require("mysql2/promise");
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+module.exports = pool;
+```
+
+#### 5.3 Isi file `server.js`
+
+Buat `server.js` dan isi:
+
+```js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const pool = require("./db");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// health check
+app.get("/health", async (req, res) => {
+  res.json({ status: "ok", message: "API berjalan" });
+});
+
+// db check
+app.get("/db-check", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT 1 AS test");
+    res.json({ status: "ok", db: rows[0] });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+app.listen(process.env.PORT, () => {
+  console.log(`Server jalan di http://localhost:${process.env.PORT}`);
+});
+```
+
+---
+
+### 6. Set script supaya mudah dijalankan
+
+Buka `package.json`, ubah bagian `"scripts"` jadi:
+
+```json
+"scripts": {
+  "dev": "nodemon server.js",
+  "start": "node server.js"
+}
+```
+
+---
+
+### 7. Jalankan dan verifikasi (ini bagian “cek berhasil”)
+
+Jalankan:
+
+```bat
+npm run dev
+```
+
+Harus muncul:
+
+* `Server jalan di http://localhost:3001`
+
+Lalu buka browser:
+
+* `http://localhost:3001/health`
+  Harus tampil JSON status ok.
+
+Lalu cek koneksi database:
+
+* `http://localhost:3001/db-check`
+  Harus tampil JSON status ok dan `test: 1`.
+
+---
+
+## Jika error muncul (paling umum)
+
+* **Access denied**: username/password di `.env` salah atau user MySQL belum dibuat
+* **Unknown database**: database `enablon_dc` belum dibuat
+* **ECONNREFUSED**: MySQL server belum running
+
+---
+
+## Tugas Anda sekarang
+
+Kerjakan Step 1 sampai Anda berhasil membuka:
+
+1. `/health`
+2. `/db-check`
+
+Kalau sudah berhasil, balas: **“sudah, lanjut step 2”**.
+
+Kalau ada error, paste teks errornya saja (tanpa password), saya perbaiki dari situ.
+
+=================================================================
+
+Baik, berarti **Step 1 selesai**: backend Express sudah berjalan dan berhasil terhubung ke MySQL (koneksi database sudah valid).
+
+Sekarang Anda siap masuk **Step 2**: membuat tabel pertama yang relevan untuk aplikasi “Enablon pusat data center” dan membuat API CRUD pertama. Supaya aplikasi ini nyambung dengan banyak mata kuliah (basis data, analisis sistem, rekayasa perangkat lunak, keamanan, pemrograman web), kita mulai dari modul yang paling “inti” untuk data center: **aset perangkat**.
+
+## Step 2. Buat tabel `asset` dan API “Read List” (paling sederhana dulu)
+
+### A) Buat tabel `asset` di database
+
+1. Masuk ke MySQL monitor:
+
+```powershell
+cd "C:\Program Files\MySQL\MySQL Server 8.0\bin"
+.\mysql -u root -p -P 3307
+```
+
+2. Pilih database:
+
+```sql
+USE enablon_dc;
+```
+
+3. Buat tabel `asset`:
+
+```sql
+CREATE TABLE IF NOT EXISTS asset (
+  asset_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  asset_code VARCHAR(30) NOT NULL,
+  asset_name VARCHAR(120) NOT NULL,
+  asset_type ENUM('Server','Storage','Network','Power','Cooling','Other') NOT NULL DEFAULT 'Other',
+  location VARCHAR(120) NULL,
+  status ENUM('Active','Maintenance','Retired') NOT NULL DEFAULT 'Active',
+  installed_date DATE NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (asset_id),
+  UNIQUE KEY uq_asset_code (asset_code),
+  INDEX idx_asset_type (asset_type),
+  INDEX idx_asset_status (status)
+) ENGINE=InnoDB;
+```
+
+4. Tambahkan 2 contoh data:
+
+```sql
+INSERT INTO asset (asset_code, asset_name, asset_type, location, status, installed_date, notes)
+VALUES
+('SRV-001', 'Server Dell R740', 'Server', 'Rack A1', 'Active', '2025-01-10', 'Host untuk aplikasi internal'),
+('NET-001', 'Switch Core 48 Port', 'Network', 'Rack N1', 'Maintenance', '2024-11-02', 'Sedang penggantian modul');
+```
+
+5. Cek:
+
+```sql
+SELECT * FROM asset;
+```
+
+Keluar:
+
+```sql
+exit;
+```
+
+---
+
+### B) Tambahkan endpoint API untuk mengambil daftar asset
+
+Sekarang ke backend.
+
+1. Buka `server.js`:
+
+```powershell
+notepad "C:\Users\budii\ENABLON\enablon-data-center\backend\server.js"
+```
+
+2. Tambahkan endpoint ini **di atas** `app.listen(...)`:
+
+```js
+app.get("/assets", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT asset_id, asset_code, asset_name, asset_type, location, status, installed_date, notes, created_at, updated_at FROM asset ORDER BY asset_id DESC"
+    );
+    res.json({ status: "ok", data: rows });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+```
+
+3. Simpan file, lalu restart nodemon:
+
+* ketik `rs` di terminal backend.
+
+---
+
+### C) Tes endpoint baru
+
+Buka browser:
+
+* `http://localhost:3001/assets`
+
+Targetnya muncul JSON berisi data 2 asset contoh.
+
+---
+
+Jika Anda sudah sampai endpoint `/assets` menampilkan data, balas: **“sudah step 2”**.
+Kalau error, paste JSON errornya, saya koreksi sampai jalan.
+
+============================================================
+Baik, itu berarti backend Express Anda **sudah berjalan dengan benar** dan request ke `http://localhost:3002/` sudah masuk ke server yang tepat. Endpoint yang tersedia juga sudah terbaca: `/health`, `/db-check`, `/assets`, `/routes`.
+
+Langkah berikutnya tinggal memastikan dua hal ini:
+
+## 1) Cek koneksi database dari API
+
+Buka:
+
+* `http://localhost:3002/db-check`
+
+Target hasilnya:
+
+```json
+{"status":"ok","db":{"test":1}}
+```
+
+Kalau masih error, biasanya karena `.env` belum sesuai (ingat MySQL Anda aktif di port **3306**, bukan 3307).
+
+## 2) Cek endpoint assets
+
+Buka:
+
+* `http://localhost:3002/assets`
+
+Target hasilnya:
+
+```json
+{"status":"ok","data":[ ... ]}
+```
+
+Kalau Anda sudah membuat tabel `asset` barusan, harusnya endpoint ini mengembalikan data (minimal 2 contoh data yang kita insert).
+
+---
+
+## Jika `/db-check` ok tapi `/assets` error
+
+Biasanya karena tabel `asset` belum ada atau namanya beda. Tes cepat di MySQL:
+
+```sql
+USE enablon_dc;
+SHOW TABLES;
+DESCRIBE asset;
+SELECT * FROM asset LIMIT 5;
+```
+
+---
+
+## Catatan soal file yang pernah Anda upload
+
+Sebagian file upload lama di chat ini bisa kedaluwarsa. Kalau Anda ingin saya cek atau gabungkan ulang file tertentu, unggah ulang file tersebut atau paste isinya.
+
+Kalau Anda kirimkan output dari:
+
+1. `http://localhost:3002/db-check`
+2. `http://localhost:3002/assets`
+
+Saya bisa pastikan statusnya sudah 100 persen beres atau tunjukkan perbaikan yang diperlukan.
+ Bagus. Karena server sudah jalan dan endpoint dasar sudah muncul, tahapan selanjutnya yang paling tepat adalah membuat fitur inti aplikasi: **CRUD data asset** di backend, lalu baru disambungkan ke frontend Vue.
+
+Saya sarankan kita mulai dari langkah pertama yang benar benar diperlukan frontend, yaitu **menambah endpoint untuk menambahkan asset**.
+
+## Tahap selanjutnya, Step 1: Buat endpoint tambah asset (POST /assets)
+
+### 1. Pastikan dulu DB sudah siap
+
+Cek cepat:
+
+1. Buka `http://localhost:3002/db-check` harus status ok
+2. Buka `http://localhost:3002/assets` harus mengembalikan data (boleh kosong, tapi jangan error koneksi)
+
+Kalau masih error koneksi, pastikan `.env` backend `DB_PORT=3306`.
+
+### 2. Tambahkan kode endpoint POST di `server.js`
+
+Buka `server.js`, lalu tambahkan blok ini **di bawah endpoint GET /assets** (sebelum `app.listen`):
+
+```js
+app.post("/assets", async (req, res) => {
+  try {
+    const {
+      asset_code,
+      asset_name,
+      asset_type = "Other",
+      location = null,
+      status = "Active",
+      installed_date = null,
+      notes = null,
+    } = req.body;
+
+    // Validasi sederhana
+    if (!asset_code || !asset_name) {
+      return res.status(400).json({
+        status: "error",
+        message: "asset_code dan asset_name wajib diisi",
+      });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO asset
+       (asset_code, asset_name, asset_type, location, status, installed_date, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [asset_code, asset_name, asset_type, location, status, installed_date, notes]
+    );
+
+    res.status(201).json({
+      status: "ok",
+      message: "Asset berhasil ditambahkan",
+      asset_id: result.insertId,
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+```
+
+Simpan file.
+
+### 3. Restart backend
+
+Di PowerShell, di folder backend:
+
+```powershell
+cd "C:\Users\budii\ENABLON\enablon-data-center\backend"
+taskkill /F /IM node.exe
+npm run dev
+```
+
+### 4. Tes tambah data asset
+
+Di PowerShell, gunakan `curl.exe` supaya tidak bentrok dengan alias:
+
+```powershell
+curl.exe -X POST http://localhost:3002/assets ^
+  -H "Content-Type: application/json" ^
+  -d "{\"asset_code\":\"SRV002\",\"asset_name\":\"Server HP DL380\",\"asset_type\":\"Server\",\"location\":\"Rack A2\",\"status\":\"Active\",\"installed_date\":\"2025-02-01\",\"notes\":\"Unit baru\"}"
+```
+
+Lalu cek lagi:
+`http://localhost:3002/assets`
+Harus terlihat data SRV002.
+
+## Tahap berikutnya setelah Step 1 selesai
+
+Kalau endpoint tambah sudah berhasil, urutan berikutnya:
+
+1. Endpoint detail asset: GET `/assets/:id`
+2. Endpoint ubah asset: PUT `/assets/:id`
+3. Endpoint hapus asset: DELETE `/assets/:id`
+4. Baru buat frontend Vue untuk menampilkan tabel assets dan form tambah asset
+
+Silakan jalankan Step 1 di atas dulu. Setelah Anda dapat respons `Asset berhasil ditambahkan` dan data muncul di `/assets`, beri tahu saya, lalu saya lanjutkan Step 2 dengan endpoint detail asset.
+=========================================================================
+Saya akan tambahkan 3 endpoint CRUD lanjutan (GET detail, PUT update, DELETE) ke server.js Anda, lalu saya berikan blok kode siap tempel dan perintah test PowerShell-nya.
+
+
+File `server.js` Anda sudah rapi dan benar untuk tahap GET list dan POST create. Tahapan selanjutnya adalah melengkapi CRUD Asset dengan 3 endpoint berikut:
+
+1. **GET /assets/:id** (detail)
+2. **PUT /assets/:id** (update)
+3. **DELETE /assets/:id** (hapus)
+
+Di bawah ini saya berikan blok kode **siap tempel**. Anda tinggal tempelkan **setelah** blok `app.post("/assets"...` dan **sebelum** bagian `app.listen(...)`.
+
+---
+
+## 1) Tambahkan 3 endpoint CRUD lanjutan (copy paste)
+
+```js
+/* GET /assets/:id: detail asset */
+app.get("/assets/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const [rows] = await pool.query(
+      `SELECT asset_id, asset_code, asset_name, asset_type, location, status,
+              installed_date, notes, created_at, updated_at
+       FROM asset
+       WHERE asset_id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Asset tidak ditemukan" });
+    }
+
+    res.json({ status: "ok", data: rows[0] });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+/* PUT /assets/:id: update asset */
+app.put("/assets/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const {
+      asset_code,
+      asset_name,
+      asset_type,
+      location,
+      status,
+      installed_date,
+      notes,
+    } = req.body;
+
+    const [result] = await pool.query(
+      `UPDATE asset
+       SET asset_code = COALESCE(?, asset_code),
+           asset_name = COALESCE(?, asset_name),
+           asset_type = COALESCE(?, asset_type),
+           location = COALESCE(?, location),
+           status = COALESCE(?, status),
+           installed_date = COALESCE(?, installed_date),
+           notes = COALESCE(?, notes)
+       WHERE asset_id = ?`,
+      [
+        asset_code,
+        asset_name,
+        asset_type,
+        location,
+        status,
+        installed_date,
+        notes,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Asset tidak ditemukan" });
+    }
+
+    res.json({ status: "ok", message: "Asset berhasil diupdate" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+/* DELETE /assets/:id: hapus asset */
+app.delete("/assets/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const [result] = await pool.query(`DELETE FROM asset WHERE asset_id = ?`, [
+      id,
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Asset tidak ditemukan" });
+    }
+
+    res.json({ status: "ok", message: "Asset berhasil dihapus" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+```
+
+---
+
+## 2) Restart backend
+
+Jika nodemon sedang berjalan, ketik `rs` di terminal nodemon.
+
+Kalau mau restart paksa:
+
+```powershell
+taskkill /F /IM node.exe
+cd "C:\Users\budii\ENABLON\enablon-data-center\backend"
+npm run dev
+```
+
+---
+
+## 3) Test endpoint satu per satu (PowerShell)
+
+### A) Test detail asset (misalnya asset_id = 4)
+
+```powershell
+curl.exe "http://127.0.0.1:3002/assets/4"
+```
+
+### B) Test update asset (ubah location dan notes)
+
+```powershell
+$body = @{
+  location = "Rack A2 Updated"
+  notes = "Update catatan"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Put -Uri "http://127.0.0.1:3002/assets/4" -ContentType "application/json" -Body $body
+```
+
+Cek lagi:
+
+```powershell
+curl.exe "http://127.0.0.1:3002/assets/4"
+```
+
+### C) Test delete asset (misalnya asset_id = 3)
+
+```powershell
+Invoke-RestMethod -Method Delete -Uri "http://127.0.0.1:3002/assets/3"
+curl.exe "http://127.0.0.1:3002/assets"
+```
+
+---
+
+## 4) (Opsional, tapi saya sarankan) rapikan `installed_date` agar tidak mundur 1 hari
+
+Masalah Anda sekarang: `installed_date` tampil seperti `2025-01-31T17:00:00.000Z` padahal input `2025-02-01`. Itu efek timezone.
+
+Perbaikan paling rapi: di `db.js` tambahkan `dateStrings: ["DATE"]` pada `createPool`, lalu restart backend.
+
+---
+
+Kalau Anda sudah tempel 3 endpoint itu, kirimkan output dari:
+
+1. `curl.exe "http://127.0.0.1:3002/assets/4"`
+2. hasil `Invoke-RestMethod` untuk PUT `/assets/4`
+
+Setelah CRUD backend lengkap, kita lanjut ke tahap berikutnya: mulai frontend Vue untuk menampilkan tabel asset dan form tambah asset.
+=========================================================
+Oke. Karena **CRUD backend untuk `asset` sudah lengkap** (GET list/detail, POST, PUT, DELETE) dan `db.js` Anda sudah benar (pakai `DB_PORT` dan `dateStrings: ["DATE"]`), maka **Step berikutnya yang paling masuk akal** adalah mulai **frontend Vue** supaya aplikasi Anda mulai “kelihatan”.
+
+Kita buat pelan-pelan ya. Ini **Step 3: Frontend Vue (Vite) + tampilkan daftar asset dari API**.
+Target akhir Step 3: halaman web menampilkan tabel asset dari endpoint `GET http://localhost:3002/assets`.
+
+> Catatan kecil: beberapa file upload lama di chat kadang bisa kedaluwarsa. Kalau nanti Anda minta saya cek file tertentu dan file-nya tidak kebaca lagi, tinggal upload ulang aja.
+
+---
+
+## Step 3 — Buat Frontend Vue dan tampilkan Asset List
+
+### 0) Pastikan backend sudah jalan
+
+Di terminal backend (yang nodemon), pastikan masih running di port Anda (misal **3002**).
+
+Tes cepat di browser:
+
+* `http://localhost:3002/health` ✅
+* `http://localhost:3002/assets` ✅ (keluar JSON)
+
+Kalau ini belum ok, stop dulu.
+
+---
+
+## 1) Buat project Vue (Vite)
+
+Buka PowerShell / CMD, masuk ke folder proyek utama Anda (yang berisi `backend`):
+
+```powershell
+cd "C:\Users\budii\ENABLON\enablon-data-center"
+```
+
+Buat frontend Vue (pakai Vite):
+
+```powershell
+npm create vite@latest frontend -- --template vue
+cd frontend
+npm install
+```
+
+Jalankan frontend:
+
+```powershell
+npm run dev
+```
+
+Biasanya muncul link seperti:
+
+* `http://localhost:5173/`
+
+Buka link itu, harus tampil halaman Vue default ✅
+
+---
+
+## 2) Install Axios (biar gampang akses API)
+
+Di folder `frontend`:
+
+```powershell
+npm install axios
+```
+
+---
+
+## 3) Buat “service API” (rapi dan gampang dipakai)
+
+Buat file:
+
+**`frontend/src/api.js`**
+
+```js
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: "http://localhost:3002", // samakan dengan port backend Anda
+  timeout: 10000,
+});
+```
+
+> Kalau backend Anda bukan 3002, ganti di sini.
+
+---
+
+## 4) Buat halaman daftar asset
+
+Buat file:
+
+**`frontend/src/components/AssetTable.vue`**
+
+```vue
+<template>
+  <div class="wrap">
+    <h1>Daftar Asset Data Center</h1>
+
+    <div class="toolbar">
+      <button @click="fetchAssets" :disabled="loading">
+        {{ loading ? "Loading..." : "Refresh" }}
+      </button>
+      <span v-if="error" class="error">{{ error }}</span>
+    </div>
+
+    <table v-if="assets.length" class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Code</th>
+          <th>Nama</th>
+          <th>Tipe</th>
+          <th>Lokasi</th>
+          <th>Status</th>
+          <th>Installed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="a in assets" :key="a.asset_id">
+          <td>{{ a.asset_id }}</td>
+          <td>{{ a.asset_code }}</td>
+          <td>{{ a.asset_name }}</td>
+          <td>{{ a.asset_type }}</td>
+          <td>{{ a.location ?? "-" }}</td>
+          <td>{{ a.status }}</td>
+          <td>{{ a.installed_date ?? "-" }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p v-else-if="!loading && !error">Data asset masih kosong.</p>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref } from "vue";
+import { api } from "../api";
+
+const assets = ref([]);
+const loading = ref(false);
+const error = ref("");
+
+async function fetchAssets() {
+  loading.value = true;
+  error.value = "";
+  try {
+    const res = await api.get("/assets");
+    assets.value = res.data?.data ?? [];
+  } catch (err) {
+    error.value = err?.response?.data?.message || err.message || "Gagal ambil data";
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(fetchAssets);
+</script>
+
+<style scoped>
+.wrap { max-width: 1000px; margin: 24px auto; font-family: Arial, sans-serif; }
+.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.error { color: #b00020; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { border: 1px solid #ddd; padding: 8px; }
+.table th { background: #f4f4f4; text-align: left; }
+button { padding: 8px 12px; cursor: pointer; }
+</style>
+```
+
+---
+
+## 5) Tampilkan komponen itu di halaman utama
+
+Buka dan ganti isi:
+
+**`frontend/src/App.vue`**
+
+```vue
+<template>
+  <AssetTable />
+</template>
+
+<script setup>
+import AssetTable from "./components/AssetTable.vue";
+</script>
+```
+
+---
+
+## 6) Tes (cek berhasil)
+
+Pastikan:
+
+* Backend jalan (misal `http://localhost:3002/assets` bisa diakses)
+* Frontend jalan (`npm run dev`)
+
+Buka:
+
+* `http://localhost:5173/`
+
+✅ Target: muncul tabel “Daftar Asset Data Center” berisi data dari database Anda.
+
+---
+
+## Jika muncul error CORS / tidak bisa akses API
+
+Kabar baik: di backend Anda sudah pakai `cors()`, jadi harusnya aman.
+
+Kalau masih error, kirim saya **teks error di browser (Console)** atau pesan error yang muncul di layar.
+
+---
+
+# Setelah Anda paham Step 3
+
+Balas: **“sudah step 3”**.
+
+Lalu saya lanjut **Step 4** (pilih yang paling relevan untuk aplikasi SI):
+
+* **Form tambah asset (POST)** dari Vue (input → kirim ke API → tabel auto update)
+* * validasi sederhana (wajib isi kode & nama)
+* (opsional) fitur “Edit/Hapus” di tabel (PUT/DELETE)
+
+Kalau Anda ketemu error, paste saja errornya (tanpa password).
+==========================================================
+Mantap — **frontend (5173) dan backend (3002) sudah sama-sama jalan** ✅. Sekarang kita selesaikan masalah “**Network Error**” di halaman Asset.
+
+Biasanya tinggal 1 dari 3 hal ini:
+
+1. `baseURL` di frontend salah (masih 3001/3000)
+2. Backend `/assets` error (500) → tapi di UI kebaca “Network Error”
+3. CORS / mixed content (jarang kalau localhost semua)
+
+Kita cek paling cepat, urut ya:
+
+---
+
+## A) Tes API dari komputer Anda (wajib)
+
+Buka PowerShell **di mana saja**, jalankan:
+
+```powershell
+curl.exe http://localhost:3002/assets
+```
+
+**Target:** keluar JSON `{ "status": "ok", "data": [...] }`
+
+* Kalau **tidak keluar JSON**, paste outputnya ke sini.
+* Kalau **keluar JSON**, lanjut langkah B.
+
+---
+
+## B) Pastikan `frontend/src/api.js` sudah benar
+
+Buka file:
+
+`frontend/src/api.js`
+
+Pastikan persis begini (port **3002**):
+
+```js
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: "http://localhost:3002",
+  timeout: 10000,
+});
+```
+
+Kalau sudah benar, lanjut C.
+
+---
+
+## C) Ambil error asli dari Browser Console (ini yang menentukan)
+
+1. Buka `http://localhost:5173`
+2. Tekan **F12 → Console**
+3. Cari baris yang biasanya seperti:
+
+   * `AxiosError: Network Error`
+   * `net::ERR_CONNECTION_REFUSED`
+   * `CORS policy...`
+   * `ERR_BLOCKED_BY_CLIENT`
+   * `Mixed Content`
+
+📌 **Copy-paste 2–5 baris paling atas** dari error Console itu ke sini.
+
+---
+
+## D) Fix cepat kalau ternyata CORS (paling umum kedua)
+
+Kalau Console Anda menunjukkan “**CORS policy**”, lakukan ini di `server.js`:
+
+Ganti:
+
+```js
+app.use(cors());
+```
+
+jadi:
+
+```js
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
+```
+
+Lalu restart nodemon (ketik `rs`).
+
+---
+
+## E) Fix cepat kalau ternyata /assets error 500
+
+Kalau `curl.exe http://localhost:3002/assets` mengembalikan error (misal tabel belum ada / query salah), paste outputnya dan saya betulkan query / DB-nya.
+
+---
+
+### Catatan soal file upload Anda
+
+Sebagian file yang pernah Anda upload sebelumnya bisa **kedaluwarsa**. Kalau nanti Anda minta saya cek `server.js/db.js/sql` via upload dan saya bilang tidak kebaca, upload ulang saja ya.
+
+Sekarang lakukan **A** dulu: jalankan `curl.exe http://localhost:3002/assets` dan kirim hasilnya.
+==========================================================
+Mantap — **frontend (5173) dan backend (3002) sudah sama-sama jalan** ✅. Sekarang kita selesaikan masalah “**Network Error**” di halaman Asset.
+
+Biasanya tinggal 1 dari 3 hal ini:
+
+1. `baseURL` di frontend salah (masih 3001/3000)
+2. Backend `/assets` error (500) → tapi di UI kebaca “Network Error”
+3. CORS / mixed content (jarang kalau localhost semua)
+
+Kita cek paling cepat, urut ya:
+
+---
+
+## A) Tes API dari komputer Anda (wajib)
+
+Buka PowerShell **di mana saja**, jalankan:
+
+```powershell
+curl.exe http://localhost:3002/assets
+```
+
+**Target:** keluar JSON `{ "status": "ok", "data": [...] }`
+
+* Kalau **tidak keluar JSON**, paste outputnya ke sini.
+* Kalau **keluar JSON**, lanjut langkah B.
+
+---
+
+## B) Pastikan `frontend/src/api.js` sudah benar
+
+Buka file:
+
+`frontend/src/api.js`
+
+Pastikan persis begini (port **3002**):
+
+```js
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: "http://localhost:3002",
+  timeout: 10000,
+});
+```
+
+Kalau sudah benar, lanjut C.
+
+---
+
+## C) Ambil error asli dari Browser Console (ini yang menentukan)
+
+1. Buka `http://localhost:5173`
+2. Tekan **F12 → Console**
+3. Cari baris yang biasanya seperti:
+
+   * `AxiosError: Network Error`
+   * `net::ERR_CONNECTION_REFUSED`
+   * `CORS policy...`
+   * `ERR_BLOCKED_BY_CLIENT`
+   * `Mixed Content`
+
+📌 **Copy-paste 2–5 baris paling atas** dari error Console itu ke sini.
+
+---
+
+## D) Fix cepat kalau ternyata CORS (paling umum kedua)
+
+Kalau Console Anda menunjukkan “**CORS policy**”, lakukan ini di `server.js`:
+
+Ganti:
+
+```js
+app.use(cors());
+```
+
+jadi:
+
+```js
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
+```
+
+Lalu restart nodemon (ketik `rs`).
+
+---
+
+## E) Fix cepat kalau ternyata /assets error 500
+
+Kalau `curl.exe http://localhost:3002/assets` mengembalikan error (misal tabel belum ada / query salah), paste outputnya dan saya betulkan query / DB-nya.
+
+---
+
+### Catatan soal file upload Anda
+
+Sebagian file yang pernah Anda upload sebelumnya bisa **kedaluwarsa**. Kalau nanti Anda minta saya cek `server.js/db.js/sql` via upload dan saya bilang tidak kebaca, upload ulang saja ya.
+
+Sekarang lakukan **A** dulu: jalankan `curl.exe http://localhost:3002/assets` dan kirim hasilnya.
+===================================================================
+Sip — berarti **Network Error sudah beres** dan **Step 3 selesai** ✅: frontend Vue berhasil ambil data dari backend dan menampilkan tabel asset.
+
+Kalau Anda sudah paham alurnya, balas aja: **“sudah step 3”**, lalu kita lanjut.
+
+## Step 4 (lanjutan paling penting): Form tambah Asset (POST /assets)
+
+Target Step 4: dari halaman Vue, Anda bisa isi form → klik **Simpan** → data langsung masuk DB → tabel otomatis update.
+
+### 1) Buat komponen form
+
+Buat file:
+
+`frontend/src/components/AssetForm.vue`
+
+```vue
+<template>
+  <form class="form" @submit.prevent="submit">
+    <h2>Tambah Asset</h2>
+
+    <div class="row">
+      <label>Asset Code *</label>
+      <input v-model.trim="form.asset_code" placeholder="SRV-003" />
+    </div>
+
+    <div class="row">
+      <label>Asset Name *</label>
+      <input v-model.trim="form.asset_name" placeholder="Server Lenovo SR650" />
+    </div>
+
+    <div class="row">
+      <label>Type</label>
+      <select v-model="form.asset_type">
+        <option>Server</option>
+        <option>Storage</option>
+        <option>Network</option>
+        <option>Power</option>
+        <option>Cooling</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label>Location</label>
+      <input v-model.trim="form.location" placeholder="Rack A3" />
+    </div>
+
+    <div class="row">
+      <label>Status</label>
+      <select v-model="form.status">
+        <option>Active</option>
+        <option>Maintenance</option>
+        <option>Retired</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label>Installed Date</label>
+      <input type="date" v-model="form.installed_date" />
+    </div>
+
+    <div class="row">
+      <label>Notes</label>
+      <textarea v-model.trim="form.notes" rows="3" placeholder="Catatan..."></textarea>
+    </div>
+
+    <div class="toolbar">
+      <button type="submit" :disabled="loading">
+        {{ loading ? "Menyimpan..." : "Simpan" }}
+      </button>
+      <span v-if="error" class="error">{{ error }}</span>
+      <span v-if="success" class="success">{{ success }}</span>
+    </div>
+  </form>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { api } from "../api";
+
+const emit = defineEmits(["created"]);
+
+const loading = ref(false);
+const error = ref("");
+const success = ref("");
+
+const form = ref({
+  asset_code: "",
+  asset_name: "",
+  asset_type: "Other",
+  location: "",
+  status: "Active",
+  installed_date: "",
+  notes: "",
+});
+
+async function submit() {
+  error.value = "";
+  success.value = "";
+
+  if (!form.value.asset_code || !form.value.asset_name) {
+    error.value = "Asset Code dan Asset Name wajib diisi.";
+    return;
+  }
+
+  loading.value = true;
+  try {
+    await api.post("/assets", {
+      asset_code: form.value.asset_code,
+      asset_name: form.value.asset_name,
+      asset_type: form.value.asset_type,
+      location: form.value.location || null,
+      status: form.value.status,
+      installed_date: form.value.installed_date || null,
+      notes: form.value.notes || null,
+    });
+
+    success.value = "Asset berhasil ditambahkan.";
+
+    // reset form
+    form.value.asset_code = "";
+    form.value.asset_name = "";
+    form.value.asset_type = "Other";
+    form.value.location = "";
+    form.value.status = "Active";
+    form.value.installed_date = "";
+    form.value.notes = "";
+
+    emit("created"); // kasih tahu parent buat refresh tabel
+  } catch (err) {
+    error.value = err?.response?.data?.message || err.message || "Gagal menyimpan";
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.form { border: 1px solid #ddd; padding: 16px; border-radius: 10px; margin-bottom: 16px; }
+.row { display: grid; gap: 6px; margin-bottom: 10px; }
+input, select, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
+.toolbar { display: flex; gap: 12px; align-items: center; }
+button { padding: 8px 12px; cursor: pointer; }
+.error { color: #b00020; }
+.success { color: #0a7a2f; }
+</style>
+```
+
+---
+
+### 2) Update `AssetTable.vue` supaya bisa refresh dari form
+
+Edit `frontend/src/components/AssetTable.vue`:
+
+* Tambahkan import `AssetForm`
+* Panggil `<AssetForm @created="fetchAssets" />` di atas tabel
+
+Contoh perubahan minimal:
+
+**Tambahkan di `<template>` paling atas dalam div `.wrap`:**
+
+```vue
+<AssetForm @created="fetchAssets" />
+```
+
+**Tambahkan di `<script setup>`:**
+
+```js
+import AssetForm from "./AssetForm.vue";
+```
+
+---
+
+### 3) Tes
+
+1. Buka `http://localhost:5173/`
+2. Isi form → klik **Simpan**
+3. Harus muncul pesan “Asset berhasil ditambahkan”
+4. Tabel langsung update (asset baru muncul)
+
+---
+
+Kalau sudah berhasil nambah data dari form, balas: **“sudah step 4”**
+Lanjut Step 5: **Edit + Delete dari tabel** (PUT/DELETE) + tombol aksi.
+
+Kalau muncul error, paste errornya (di UI atau Console).
+
+*(Catatan: sebagian file upload Anda sebelumnya bisa kedaluwarsa. Kalau nanti Anda minta saya cek file upload tertentu dan saya tidak bisa akses, upload ulang saja.)*
+==================================================================
+Langkah selanjutnya kita masuk **Step 5: aksi Edit & Delete langsung dari tabel** (PUT/DELETE), supaya aplikasi Anda mulai terasa seperti “software beneran”.
+
+Target Step 5:
+
+* Di tiap baris asset ada tombol **Edit** dan **Hapus**
+* Edit membuka form kecil (inline) → klik **Simpan** → data berubah
+* Hapus meminta konfirmasi → data hilang → tabel refresh
+
+> Catatan: sebagian file upload Anda sebelumnya bisa **kedaluwarsa**. Kalau Anda ingin saya cek/rapikan isi file yang Anda upload (mis. `server.js`, `db.js`, atau SQL) dan saya bilang tidak bisa dibuka, upload ulang saja ya.
+
+---
+
+## Step 5A — Tambah tombol Edit & Hapus di AssetTable.vue
+
+Buka `frontend/src/components/AssetTable.vue`, lalu lakukan perubahan berikut.
+
+### 1) Tambahkan kolom “Aksi” di tabel
+
+Di `<thead>`, tambahkan 1 header:
+
+```html
+<th>Aksi</th>
+```
+
+Jadi headernya jadi:
+
+```html
+<thead>
+  <tr>
+    <th>ID</th>
+    <th>Code</th>
+    <th>Nama</th>
+    <th>Tipe</th>
+    <th>Lokasi</th>
+    <th>Status</th>
+    <th>Installed</th>
+    <th>Aksi</th>
+  </tr>
+</thead>
+```
+
+---
+
+### 2) Tambahkan tombol Edit & Hapus di tiap row
+
+Di `<tbody>` dalam `<tr v-for...>`, tambahkan `<td>` terakhir:
+
+```html
+<td class="actions">
+  <button @click="startEdit(a)">Edit</button>
+  <button class="danger" @click="remove(a.asset_id)">Hapus</button>
+</td>
+```
+
+---
+
+## Step 5B — Tambah logic edit/hapus di script
+
+Di `<script setup>`, tambahkan state dan fungsi berikut.
+
+### 1) Tambahkan `editingId` dan `editForm`
+
+Taruh setelah `error`:
+
+```js
+const editingId = ref(null);
+
+const editForm = ref({
+  asset_code: "",
+  asset_name: "",
+  asset_type: "Other",
+  location: "",
+  status: "Active",
+  installed_date: "",
+  notes: "",
+});
+```
+
+### 2) Tambahkan fungsi startEdit, cancelEdit, saveEdit, remove
+
+Tempel **di bawah fetchAssets()**:
+
+```js
+function startEdit(a) {
+  editingId.value = a.asset_id;
+  editForm.value = {
+    asset_code: a.asset_code ?? "",
+    asset_name: a.asset_name ?? "",
+    asset_type: a.asset_type ?? "Other",
+    location: a.location ?? "",
+    status: a.status ?? "Active",
+    installed_date: a.installed_date ?? "",
+    notes: a.notes ?? "",
+  };
+}
+
+function cancelEdit() {
+  editingId.value = null;
+}
+
+async function saveEdit(id) {
+  loading.value = true;
+  error.value = "";
+  try {
+    await api.put(`/assets/${id}`, {
+      asset_code: editForm.value.asset_code,
+      asset_name: editForm.value.asset_name,
+      asset_type: editForm.value.asset_type,
+      location: editForm.value.location || null,
+      status: editForm.value.status,
+      installed_date: editForm.value.installed_date || null,
+      notes: editForm.value.notes || null,
+    });
+    editingId.value = null;
+    await fetchAssets();
+  } catch (err) {
+    error.value = err?.response?.data?.message || err.message || "Gagal update data";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function remove(id) {
+  const ok = confirm("Yakin hapus asset ini?");
+  if (!ok) return;
+
+  loading.value = true;
+  error.value = "";
+  try {
+    await api.delete(`/assets/${id}`);
+    await fetchAssets();
+  } catch (err) {
+    error.value = err?.response?.data?.message || err.message || "Gagal hapus data";
+  } finally {
+    loading.value = false;
+  }
+}
+```
+
+---
+
+## Step 5C — Ubah tampilan row saat mode edit (inline edit)
+
+Ganti bagian `<tbody>` Anda menjadi seperti ini (bagian inti saja):
+
+```vue
+<tbody>
+  <tr v-for="a in assets" :key="a.asset_id">
+    <template v-if="editingId === a.asset_id">
+      <td>{{ a.asset_id }}</td>
+      <td><input v-model="editForm.asset_code" /></td>
+      <td><input v-model="editForm.asset_name" /></td>
+      <td>
+        <select v-model="editForm.asset_type">
+          <option>Server</option>
+          <option>Storage</option>
+          <option>Network</option>
+          <option>Power</option>
+          <option>Cooling</option>
+          <option>Other</option>
+        </select>
+      </td>
+      <td><input v-model="editForm.location" /></td>
+      <td>
+        <select v-model="editForm.status">
+          <option>Active</option>
+          <option>Maintenance</option>
+          <option>Retired</option>
+        </select>
+      </td>
+      <td><input type="date" v-model="editForm.installed_date" /></td>
+      <td class="actions">
+        <button @click="saveEdit(a.asset_id)">Simpan</button>
+        <button @click="cancelEdit">Batal</button>
+      </td>
+    </template>
+
+    <template v-else>
+      <td>{{ a.asset_id }}</td>
+      <td>{{ a.asset_code }}</td>
+      <td>{{ a.asset_name }}</td>
+      <td>{{ a.asset_type }}</td>
+      <td>{{ a.location ?? "-" }}</td>
+      <td>{{ a.status }}</td>
+      <td>{{ a.installed_date ?? "-" }}</td>
+      <td class="actions">
+        <button @click="startEdit(a)">Edit</button>
+        <button class="danger" @click="remove(a.asset_id)">Hapus</button>
+      </td>
+    </template>
+  </tr>
+</tbody>
+```
+
+---
+
+## Step 5D — Tambah CSS kecil untuk tombol
+
+Di `<style scoped>` tambahkan:
+
+```css
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+input, select {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+button.danger {
+  border: 1px solid #b00020;
+  color: #b00020;
+  background: transparent;
+}
+```
+
+---
+
+## Cara tes Step 5
+
+1. Klik **Edit** → ubah lokasi/status → klik **Simpan**
+2. Pastikan data berubah di tabel
+3. Klik **Hapus** → OK → baris hilang
+
+Kalau semua berhasil, balas: **“sudah step 5”**.
+
+---
+
+## Setelah Step 5 (pilihan Step 6 yang paling “Sistem Informasi”)
+
+Saya sarankan next:
+
+* **Login sederhana + role (admin/operator/viewer)** (nyambung mata kuliah keamanan & analisis sistem)
+* **Audit log** (siapa mengubah apa & kapan)
+* **Relasi tabel**: asset ↔ maintenance_ticket ↔ incident (nyambung ERD/DB)
+
+Mau saya lanjutkan Step 6 yang mana dulu? (kalau Anda bingung, saya pilihkan yang paling fundamental: **Login + JWT**).
+=========================================================
+Siap. Kita “upgrade” aplikasi Anda jadi **tampilan website multi-halaman**: **Login → Dashboard → Events → Assets (List + Form)** (dan tentu ada **Logout**). Kita pakai Vue Router + layout sederhana. Ini masih versi **tanpa autentikasi backend dulu** (login simulasi di frontend) supaya Anda paham arsitekturnya. Setelah UI beres, baru kita lanjutkan **JWT login beneran** di backend (Step berikutnya).
+
+> Catatan: sebagian file upload Anda sebelumnya bisa kedaluwarsa. Kalau Anda ingin saya cek/ubah langsung file yang Anda upload (mis. `server.js`, `db.js`, dll.) tapi saya tidak bisa membacanya, upload ulang saja.
+
+---
+
+# STEP UI 1 — Buat struktur halaman (Login, Dashboard, Events, Assets)
+
+## 1) Install Vue Router
+
+Di folder `frontend`:
+
+```powershell
+cd "C:\Users\budii\ENABLON\enablon-data-center\frontend"
+npm install vue-router
+```
+
+---
+
+## 2) Buat folder & file baru
+
+Buat folder:
+
+* `src/pages`
+* `src/layouts`
+
+Buat file:
+
+* `src/router.js`
+* `src/layouts/AppLayout.vue`
+* `src/pages/Login.vue`
+* `src/pages/Dashboard.vue`
+* `src/pages/Events.vue`
+* `src/pages/Assets.vue`
+
+---
+
+## 3) Buat router (src/router.js)
+
+Isi `src/router.js`:
+
+```js
+import { createRouter, createWebHistory } from "vue-router";
+
+import Login from "./pages/Login.vue";
+import Dashboard from "./pages/Dashboard.vue";
+import Events from "./pages/Events.vue";
+import Assets from "./pages/Assets.vue";
+
+// auth sederhana (sementara) -> simpan token palsu
+function isAuthed() {
+  return !!localStorage.getItem("token");
+}
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: "/", redirect: "/dashboard" },
+    { path: "/login", component: Login },
+    { path: "/dashboard", component: Dashboard, meta: { requiresAuth: true } },
+    { path: "/events", component: Events, meta: { requiresAuth: true } },
+    { path: "/assets", component: Assets, meta: { requiresAuth: true } },
+  ],
+});
+
+// proteksi halaman (kalau belum login -> lempar ke /login)
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !isAuthed()) return "/login";
+  if (to.path === "/login" && isAuthed()) return "/dashboard";
+  return true;
+});
+
+export default router;
+```
+
+---
+
+## 4) Pasang router di main.js
+
+Buka `src/main.js` lalu ubah jadi:
+
+```js
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+
+createApp(App).use(router).mount("#app");
+```
+
+---
+
+## 5) App.vue jadi tempat “route outlet”
+
+Ganti isi `src/App.vue` jadi:
+
+```vue
+<template>
+  <router-view />
+</template>
+```
+
+---
+
+# STEP UI 2 — Layout navigasi (Dashboard/Events/Assets + Logout)
+
+## 6) Buat layout: src/layouts/AppLayout.vue
+
+```vue
+<template>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">Enablon DC</div>
+
+      <nav class="menu">
+        <RouterLink to="/dashboard" class="link" active-class="active">Dashboard</RouterLink>
+        <RouterLink to="/events" class="link" active-class="active">Events</RouterLink>
+        <RouterLink to="/assets" class="link" active-class="active">Assets</RouterLink>
+      </nav>
+
+      <button class="logout" @click="logout">Logout</button>
+    </aside>
+
+    <main class="content">
+      <slot />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+function logout() {
+  localStorage.removeItem("token");
+  router.push("/login");
+}
+</script>
+
+<style scoped>
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; font-family: Arial, sans-serif; }
+.sidebar { background: #111827; color: white; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.brand { font-weight: bold; font-size: 18px; }
+.menu { display: grid; gap: 8px; margin-top: 8px; }
+.link { color: #cbd5e1; text-decoration: none; padding: 10px 12px; border-radius: 10px; }
+.link:hover { background: rgba(255,255,255,0.08); }
+.active { background: rgba(255,255,255,0.12); color: white; }
+.logout { margin-top: auto; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: white; cursor: pointer; }
+.content { padding: 22px; background: #f3f4f6; }
+</style>
+```
+
+---
+
+# STEP UI 3 — Halaman Login (sementara pakai login “dummy”)
+
+## 7) Buat halaman Login: src/pages/Login.vue
+
+```vue
+<template>
+  <div class="wrap">
+    <div class="card">
+      <h1>Login</h1>
+      <p class="sub">Masuk ke Enablon Data Center</p>
+
+      <label>Email</label>
+      <input v-model.trim="email" placeholder="admin@dc.local" />
+
+      <label>Password</label>
+      <input v-model.trim="password" type="password" placeholder="••••••••" />
+
+      <button @click="login" :disabled="loading">
+        {{ loading ? "Masuk..." : "Login" }}
+      </button>
+
+      <p v-if="error" class="err">{{ error }}</p>
+
+      <p class="hint">
+        (sementara) login bebas: isi apa saja, nanti kita ganti JWT beneran
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const email = ref("");
+const password = ref("");
+const error = ref("");
+const loading = ref(false);
+
+async function login() {
+  error.value = "";
+  loading.value = true;
+
+  // simulasi login (nanti diganti ke backend JWT)
+  if (!email.value || !password.value) {
+    error.value = "Email dan password wajib diisi.";
+    loading.value = false;
+    return;
+  }
+
+  localStorage.setItem("token", "dummy-token");
+  loading.value = false;
+  router.push("/dashboard");
+}
+</script>
+
+<style scoped>
+.wrap { min-height: 100vh; display: grid; place-items: center; background: #0f172a; font-family: Arial, sans-serif; }
+.card { width: 360px; background: white; padding: 22px; border-radius: 14px; display: grid; gap: 10px; }
+.sub { margin-top: -6px; color: #6b7280; }
+label { font-size: 14px; color: #374151; }
+input { padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; }
+button { padding: 10px; border-radius: 10px; border: none; background: #111827; color: white; cursor: pointer; }
+.err { color: #b00020; }
+.hint { font-size: 12px; color: #6b7280; }
+</style>
+```
+
+---
+
+# STEP UI 4 — Dashboard, Events, Assets page
+
+## 8) Dashboard: src/pages/Dashboard.vue
+
+```vue
+<template>
+  <AppLayout>
+    <h1>Dashboard</h1>
+    <div class="grid">
+      <div class="card">
+        <div class="title">Ringkasan</div>
+        <div class="text">Selamat datang. Ini halaman dashboard.</div>
+      </div>
+      <div class="card">
+        <div class="title">Tips</div>
+        <div class="text">Nanti kita isi metrik: total asset, active, maintenance, dll.</div>
+      </div>
+    </div>
+  </AppLayout>
+</template>
+
+<script setup>
+import AppLayout from "../layouts/AppLayout.vue";
+</script>
+
+<style scoped>
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.card { background: white; padding: 16px; border-radius: 14px; border: 1px solid #e5e7eb; }
+.title { font-weight: bold; margin-bottom: 6px; }
+.text { color: #374151; }
+</style>
+```
+
+## 9) Events: src/pages/Events.vue
+
+```vue
+<template>
+  <AppLayout>
+    <h1>Events</h1>
+    <div class="card">
+      <p>Ini placeholder modul Events (insiden, maintenance, audit log, dll).</p>
+      <p>Nanti kita buat tabel `event` dan CRUD seperti asset.</p>
+    </div>
+  </AppLayout>
+</template>
+
+<script setup>
+import AppLayout from "../layouts/AppLayout.vue";
+</script>
+
+<style scoped>
+.card { background: white; padding: 16px; border-radius: 14px; border: 1px solid #e5e7eb; margin-top: 12px; }
+</style>
+```
+
+## 10) Assets: src/pages/Assets.vue
+
+Ini halaman yang menampilkan AssetForm + AssetTable (yang sudah Anda buat).
+
+```vue
+<template>
+  <AppLayout>
+    <AssetTable />
+  </AppLayout>
+</template>
+
+<script setup>
+import AppLayout from "../layouts/AppLayout.vue";
+import AssetTable from "../components/AssetTable.vue";
+</script>
+```
+
+---
+
+# STEP UI 5 — Jalankan dan tes alur
+
+1. Pastikan frontend jalan:
+
+```powershell
+npm run dev
+```
+
+2. Buka:
+
+* `http://localhost:5173/login`
+
+3. Isi email/password → Login → pindah ke `/dashboard`
+
+4. Klik menu:
+
+* Dashboard
+* Events
+* Assets
+
+5. Klik Logout → balik ke Login
+
+---
+
+## Kalau sudah berhasil tampil semua halaman
+
+Balas: **“sudah UI login-dashboard-events-assets”**
+
+Lalu saya lanjutkan step berikutnya yang paling “real”:
+✅ **Login beneran pakai backend (JWT + tabel users + password hash)**
+dan frontend akan menyimpan token asli, bukan dummy.
+
+Mau langsung lanjut ke **Login JWT backend** sekarang?
+=====================================================
+Pertanyaan bagus 👍
+Saya jelaskan **pelan dan jujur dari nol**, supaya Anda **paham apa yang sedang dipakai sekarang** dan **apa yang seharusnya dipakai nanti**.
+
+---
+
+# Jawaban singkat dulu
+
+**Saat ini aplikasi Anda menggunakan *login palsu (dummy login)* berbasis `localStorage`, BUKAN login sungguhan.**
+
+Belum ada:
+
+* tabel `users`
+* password hash
+* JWT
+* session backend
+
+👉 Login sekarang **hanya untuk mengatur tampilan halaman (UI routing)**, bukan keamanan.
+
+---
+
+# Penjelasan pelan-pelan (yang sekarang Anda pakai)
+
+## 1️⃣ Login Anda sekarang pakai apa?
+
+Login Anda sekarang pakai:
+
+✅ **Frontend-only authentication (dummy token)**
+❌ **TIDAK pakai database user**
+❌ **TIDAK pakai backend login**
+
+### Mekanismenya:
+
+Di `Login.vue` kita punya kode ini:
+
+```js
+localStorage.setItem("token", "dummy-token");
+```
+
+Artinya:
+
+* Begitu user klik Login
+* Kita **menyimpan string palsu** `"dummy-token"` di browser
+* Browser menganggap: “user sudah login”
+
+---
+
+## 2️⃣ Kenapa setelah login bisa masuk Dashboard?
+
+Karena di `router.js` ada kode ini:
+
+```js
+function isAuthed() {
+  return !!localStorage.getItem("token");
+}
+```
+
+Artinya:
+
+* Kalau `localStorage` **punya `token` → dianggap login**
+* Kalau tidak ada → dianggap belum login
+
+Dan ini dijaga oleh **route guard**:
+
+```js
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !isAuthed()) return "/login";
+});
+```
+
+👉 Jadi:
+
+* `/dashboard`, `/assets`, `/events` **tidak bisa diakses**
+* kecuali `localStorage.token` ada
+
+---
+
+## 3️⃣ Logout pakai apa?
+
+Di `AppLayout.vue`:
+
+```js
+localStorage.removeItem("token");
+```
+
+Artinya:
+
+* Token dihapus
+* Router mendeteksi user **tidak login**
+* User dikirim ke `/login`
+
+---
+
+## 4️⃣ Kenapa ini TIDAK AMAN?
+
+Karena:
+
+* Siapa pun bisa buka DevTools
+* Ketik:
+
+  ```js
+  localStorage.setItem("token", "apa-aja")
+  ```
+* Langsung dianggap login 😅
+
+📌 **Ini sengaja kita lakukan di awal** supaya:
+
+* Anda paham **alur aplikasi**
+* Anda paham **routing, layout, halaman**
+* Tidak langsung pusing ke JWT & crypto
+
+---
+
+# Sekarang yang BENAR secara industri (yang akan kita buat)
+
+## Login yang BENAR = JWT Authentication
+
+Nanti kita akan pakai:
+
+### Backend
+
+* Tabel `users`
+* Password di-**hash** (bcrypt)
+* Endpoint:
+
+  * `POST /auth/login`
+  * `POST /auth/register`
+* Server mengeluarkan **JWT token**
+
+### Frontend
+
+* Login → kirim email & password ke backend
+* Backend balas:
+
+  ```json
+  { "token": "JWT-ASLI" }
+  ```
+* Token disimpan di:
+
+  * `localStorage` (belajar)
+  * atau `httpOnly cookie` (lebih aman)
+
+---
+
+## Alur login yang BENAR (gambarannya)
+
+```
+User isi email + password
+        ↓
+Frontend kirim ke backend
+        ↓
+Backend cek user di DB
+        ↓
+Password cocok?
+        ↓
+Backend buat JWT
+        ↓
+Frontend simpan JWT
+        ↓
+JWT dikirim di setiap request API
+```
+
+Contoh request API nanti:
+
+```http
+GET /assets
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+# Jadi kesimpulan penting (ingat ini)
+
+| Tahap                           | Login pakai apa              |
+| ------------------------------- | ---------------------------- |
+| **Sekarang**                    | Dummy token (`localStorage`) |
+| **Tujuan belajar UI & routing** | ✅ Sudah benar                |
+| **Keamanan sungguhan**          | ❌ Belum                      |
+| **Tahap selanjutnya**           | JWT + DB users               |
+
+---
+
+# Pertanyaan penting untuk lanjut
+
+Saya bisa lanjutkan ke **LOGIN SUNGGUHAN** sekarang.
+
+👉 Pilih:
+1️⃣ **Lanjut ke Login JWT + tabel users (paling penting & profesional)**
+2️⃣ Tunda login, lanjut **Dashboard statistik + Events CRUD** dulu
+3️⃣ Penjelasan ulang login dummy dengan analogi non-teknis
+
+Balas dengan angka **1 / 2 / 3**.
+=====================================================================
+saya ingin web site ini mirip dengan enablon.o-i.intra/o-i/go.aspx
+=====================================================================
+Saya paham maksudnya: Anda ingin **UI/UX-nya terasa seperti portal Enablon internal** (layout enterprise: sidebar + topbar + area konten dengan kartu/tiles + tabel/data grid).
+
+Tapi saya **tidak bisa membuka** `enablon.o-i.intra/o-i/go.aspx` karena itu **intranet (internal)**. Jadi saya tidak bisa menyalin persis tanpa referensi visual.
+
+Yang bisa saya lakukan sekarang (dan paling efektif):
+
+1. Saya buatkan **layout “enterprise portal”** yang umumnya mirip Enablon: **Topbar + Sidebar + Content (cards/tables)**
+2. Kalau Anda mau “mirip banget”, kirim **1–3 screenshot** halaman itu (mis. Dashboard + halaman Asset). Nanti saya sesuaikan detail: warna, jarak, menu, gaya tabel, dll.
+
+Di bawah ini saya kasih versi **layout enterprise** yang biasanya sudah “rasa Enablon”: ada **topbar** (judul + breadcrumb + search + user menu), **sidebar** (menu), konten **scroll hanya kanan**, dan tombol **logout** tidak kepotong.
+
+---
+
+## 1) Modifikasi `AppLayout.vue` jadi enterprise portal
+
+Ganti file `frontend/src/layouts/AppLayout.vue` menjadi:
+
+```vue
+<template>
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-title">Enablon</div>
+        <div class="brand-sub">Data Center</div>
+      </div>
+
+      <nav class="menu">
+        <RouterLink to="/dashboard" class="link" active-class="active">
+          Dashboard
+        </RouterLink>
+        <RouterLink to="/events" class="link" active-class="active">
+          Events
+        </RouterLink>
+        <RouterLink to="/assets" class="link" active-class="active">
+          Assets
+        </RouterLink>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout" @click="logout">Logout</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">{{ title }}</div>
+          <div class="breadcrumb">{{ breadcrumb }}</div>
+        </div>
+
+        <div class="topbar-right">
+          <input class="search" v-model="q" placeholder="Search..." />
+          <div class="userbox">
+            <div class="avatar">U</div>
+            <div class="usertext">
+              <div class="uname">User</div>
+              <div class="urole">Operator</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT -->
+      <main class="content">
+        <slot />
+      </main>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+const router = useRouter();
+const route = useRoute();
+
+const q = ref("");
+
+function logout() {
+  localStorage.removeItem("token");
+  router.push("/login");
+}
+
+// Judul & breadcrumb sederhana (bisa Anda sesuaikan)
+const title = computed(() => {
+  if (route.path.startsWith("/assets")) return "Assets";
+  if (route.path.startsWith("/events")) return "Events";
+  return "Dashboard";
+});
+
+const breadcrumb = computed(() => {
+  if (route.path.startsWith("/assets")) return "Home / Assets";
+  if (route.path.startsWith("/events")) return "Home / Events";
+  return "Home / Dashboard";
+});
+</script>
+
+<style scoped>
+/* Shell: fixed height like enterprise portal */
+.shell {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+/* Sidebar fixed full height */
+.sidebar {
+  height: 100vh;
+  background: #0b1220;
+  color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.brand {
+  padding: 8px 8px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.brand-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.brand-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(229, 231, 235, 0.7);
+}
+
+.menu {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.link {
+  color: rgba(229, 231, 235, 0.8);
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.active {
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.logout {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Main: topbar + scrollable content */
+.main {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 64px 1fr;
+  overflow: hidden;
+  background: #eef2f7;
+}
+
+.topbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  box-sizing: border-box;
+}
+
+.page-title {
+  font-weight: 700;
+  color: #111827;
+}
+.breadcrumb {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search {
+  width: 260px;
+  padding: 9px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+}
+
+.userbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #111827;
+  color: #fff;
+  font-weight: 700;
+}
+
+.usertext {
+  line-height: 1.1;
+}
+.uname {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 700;
+}
+.urole {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.content {
+  height: 100%;
+  overflow: auto;
+  padding: 18px;
+  box-sizing: border-box;
+}
+</style>
+```
+
+Hasilnya:
+
+* Sidebar fixed setinggi layar
+* Ada topbar seperti portal enterprise
+* Konten kanan yang scroll (bukan seluruh halaman)
+* Logout aman, tidak kepotong
+
+---
+
+## 2) Biar makin “mirip Enablon”: gaya konten
+
+Enablon biasanya punya:
+
+* **Card** untuk ringkasan
+* **Data grid** yang rapi untuk list
+* **Breadcrumb** dan judul jelas
+
+Kalau Anda mau, Step berikutnya saya bisa rapikan:
+
+* `Dashboard.vue` jadi ada kartu “Total Assets / Active / Maintenance”
+* `Assets` jadi table seperti enterprise (header sticky, search/filter, pagination sederhana)
+
+---
+
+## Agar benar-benar mirip halaman yang Anda maksud
+
+Kirim salah satu dari ini (pilih yang gampang):
+
+* **Screenshot** (paling cepat) dari halaman `go.aspx` (cukup bagian atas: sidebar/topbar + 1 tabel)
+* Atau sebutkan ciri-cirinya:
+
+  * Sidebar kiri atau top menu?
+  * Ada logo/warna dominan apa?
+  * Ada breadcrumb?
+  * Tabelnya ada search/filter di atas?
+
+Kalau Anda kirim 1–3 screenshot, saya bisa sesuaikan **warna, jarak, struktur menu, bentuk tabel** supaya “mirip banget”.
+
+

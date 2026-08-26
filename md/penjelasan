@@ -1,0 +1,438 @@
+Saya jelaskan website yang sudah kita bangun ini secara konseptual, runtut, dan dengan bahasa mahasiswa Sistem Informasi, bukan bahasa developer murni.
+
+Saya akan jelaskan dari tujuan → struktur → cara kerja → kaitannya dengan mata kuliah.
+
+---
+
+1. Website ini adalah aplikasi manajemen Data Center berbasis web.
+
+Fungsinya:
+
+- Mengelola asset (server, network, storage, dll)
+- Menjadi pusat informasi kondisi data center
+- Menyediakan dashboard, pencatatan event, dan kontrol akses pengguna
+
+> Ini adalah sistem informasi untuk mengelola dan memantau aset dan aktivitas data center.
+
+
+2. Struktur besar website (cara berpikir sistem)
+
+Website ini dibangun dengan arsitektur 3 lapis (3-tier architecture):
+
+[ User / Browser ]
+        ↓
+[ Frontend (Vue.js) ]
+        ↓ HTTP / JSON
+[ Backend API (Node.js + Express) ]
+        ↓
+[ Database (MySQL) ]
+
+
+3. Penjelasan tiap bagian
+
+A. Frontend (tampilan website)
+
+Frontend adalah bagian yang dilihat dan digunakan user.
+
+Halaman yang ada sekarang:
+
+1. Login
+2. Dashboard
+3. Events
+4. Assets (Modal Hazid, SWnT, TakeFive, Permit) 
+5. Logout
+
+Frontend dibuat dengan:
+
+- Vue.js → membuat halaman dinamis
+- Vue Router → berpindah halaman tanpa reload
+- Axios → komunikasi ke backend
+
+Frontend TIDAK menyimpan data tetap, hanya:
+
+- Menampilkan data
+- Mengirim input user ke backend
+
+
+B. Backend (otak aplikasi)
+
+Backend adalah pengelola logika bisnis.
+
+Tugas backend:
+
+- Menerima request dari frontend
+- Mengolah data
+- Mengakses database
+- Mengirim hasil ke frontend
+
+Contoh:
+
+- Frontend minta data asset
+  → Backend query ke MySQL
+  → Backend kirim JSON ke frontend
+
+Backend Anda sekarang:
+
+- Node.js + Express
+- API berbasis REST
+- Endpoint seperti:
+
+  - `GET /assets`
+  - `POST /assets`
+  - `PUT /assets/:id`
+  - `DELETE /assets/:id`
+
+Backend TIDAK peduli tampilan, hanya data & aturan.
+
+
+C. Database (penyimpanan data)
+
+Database adalah tempat data permanen disimpan.
+
+Saat ini Anda punya tabel:
+
+- asset
+
+Isi tabel asset:
+
+- kode asset
+- nama
+- tipe
+- lokasi
+- status
+- tanggal instalasi
+
+Database:
+
+- MySQL
+- Relasional
+- Menggunakan primary key, enum, index
+
+
+4. Alur kerja website (contoh nyata belum fix)
+
+Contoh: User menambah asset
+
+1. User buka halaman **Assets**
+2. User isi form tambah asset
+3. Frontend kirim data ke backend (`POST /assets`)
+4. Backend:
+
+   - validasi data
+   - simpan ke database
+
+5. Backend kirim respons sukses
+6. Frontend refresh tabel
+
+➡️ **Frontend tidak langsung menyentuh database**
+➡️ Semua lewat backend
+
+
+
+5. Kenapa ada Login, Dashboard, Events, Assets?
+
+
+1️⃣ Login
+
+Fungsi:
+
+- Mengontrol siapa yang boleh mengakses sistem
+- Dasar untuk keamanan & audit
+
+Sekarang masih **dummy**, tapi strukturnya sudah benar.
+
+2️⃣ Dashboard
+
+Fungsi:
+
+- Memberikan ringkasan informasi
+- Untuk pengambil keputusan
+
+Contoh yang akan kita isi nanti:
+
+- Total asset
+- Asset aktif
+- Asset maintenance
+- Event hari ini
+
+➡️ khas Sistem Informasi Manajemen
+
+3️⃣ Events
+
+Fungsi:
+
+- Mencatat kejadian penting
+- Seperti:
+
+  - maintenance
+  - gangguan
+  - audit
+  - perubahan konfigurasi
+
+➡️ Penting untuk tracking & histori sistem
+
+
+4️⃣ Assets ➡️ core module aplikasi
+
+Fungsi:
+
+- Mengelola data utama (master data)
+- Asset adalah inti dari data center
+
+
+
+6. Website ini termasuk jenis apa?
+
+Secara akademik, website ini adalah:
+
+✅ Sistem Informasi Manajemen (SIM)
+✅ Web-based Information System
+✅ Client–Server Application
+❌ Bukan website statis
+❌ Bukan CMS
+❌ Bukan blog
+
+
+7. Kaitan dengan mata kuliah Sistem Informasi
+
+bagian penting untuk Anda sebagai mahasiswa.
+
+| Mata Kuliah              | Hubungannya                        |
+| ------------------------ | ---------------------------------- |
+| Sistem Informasi         | Website ini adalah implementasinya |
+| Basis Data               | Tabel, relasi, query               |
+| Analisis Sistem          | Modul: login, asset, event         |
+| Rekayasa Perangkat Lunak | Tahapan build, modular             |
+| Pemrograman Web          | Frontend + Backend                 |
+| Keamanan Sistem          | Login, role, audit                 |
+| Manajemen Proyek TI      | Bisa dikembangkan bertahap         |
+
+➡️ Satu aplikasi = banyak mata kuliah
+
+
+8. Kenapa kita bangun bertahap seperti ini?
+
+Karena ini mengikuti cara berpikir profesional:
+
+1. Bangun struktur
+2. Pastikan alur kerja benar
+3. Baru tambahkan keamanan
+4. Baru tambah fitur lanjutan
+
+Kalau langsung lompat ke JWT & security:
+❌ Anda akan bingung
+❌ Tidak paham alurnya
+
+Sekarang Anda sudah paham kerangkanya.
+
+
+
+# 9. Kesimpulan singkat (ingat ini)
+
+> Website ini adalah **Sistem Informasi Data Center berbasis web**,
+> yang memisahkan **tampilan (frontend)**, **logika (backend)**, dan **data (database)**,
+> dengan modul utama **Login, Dashboard, Events, dan Assets**.
+
+---
+
+Kalau mau lanjut, pilihan logis berikutnya:
+1️⃣ Mengisi **Dashboard dengan data nyata dari DB**
+2️⃣ Membuat **Events CRUD + relasi ke Asset**
+3️⃣ Mengubah **login dummy menjadi login aman (JWT)**
+
+Tinggal bilang mau lanjut yang mana 👍
+
+=========================================================
+Saya jelaskan **pelan dan jujur dari nol**, supaya Anda **paham apa yang sedang dipakai sekarang** dan **apa yang seharusnya dipakai nanti**.
+
+---
+
+# Jawaban singkat dulu
+
+**Saat ini aplikasi Anda menggunakan _login palsu (dummy login)_ berbasis `localStorage`, BUKAN login sungguhan.**
+
+Belum ada:
+
+- tabel `users`
+- password hash
+- JWT
+- session backend
+
+👉 Login sekarang **hanya untuk mengatur tampilan halaman (UI routing)**, bukan keamanan.
+
+---
+
+# Penjelasan pelan-pelan (yang sekarang Anda pakai)
+
+## 1️⃣ Login Anda sekarang pakai apa?
+
+Login Anda sekarang pakai:
+
+✅ **Frontend-only authentication (dummy token)**
+❌ **TIDAK pakai database user**
+❌ **TIDAK pakai backend login**
+
+### Mekanismenya:
+
+Di `Login.vue` kita punya kode ini:
+
+```js
+localStorage.setItem("token", "dummy-token");
+```
+
+Artinya:
+
+- Begitu user klik Login
+- Kita **menyimpan string palsu** `"dummy-token"` di browser
+- Browser menganggap: “user sudah login”
+
+---
+
+## 2️⃣ Kenapa setelah login bisa masuk Dashboard?
+
+Karena di `router.js` ada kode ini:
+
+```js
+function isAuthed() {
+  return !!localStorage.getItem("token");
+}
+```
+
+Artinya:
+
+- Kalau `localStorage` **punya `token` → dianggap login**
+- Kalau tidak ada → dianggap belum login
+
+Dan ini dijaga oleh **route guard**:
+
+```js
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !isAuthed()) return "/login";
+});
+```
+
+👉 Jadi:
+
+- `/dashboard`, `/assets`, `/events` **tidak bisa diakses**
+- kecuali `localStorage.token` ada
+
+---
+
+## 3️⃣ Logout pakai apa?
+
+Di `AppLayout.vue`:
+
+```js
+localStorage.removeItem("token");
+```
+
+Artinya:
+
+- Token dihapus
+- Router mendeteksi user **tidak login**
+- User dikirim ke `/login`
+
+---
+
+## 4️⃣ Kenapa ini TIDAK AMAN?
+
+Karena:
+
+- Siapa pun bisa buka DevTools
+- Ketik:
+
+  ```js
+  localStorage.setItem("token", "apa-aja");
+  ```
+
+- Langsung dianggap login 😅
+
+📌 **Ini sengaja kita lakukan di awal** supaya:
+
+- Anda paham **alur aplikasi**
+- Anda paham **routing, layout, halaman**
+- Tidak langsung pusing ke JWT & crypto
+
+---
+
+# Sekarang yang BENAR secara industri (yang akan kita buat)
+
+## Login yang BENAR = JWT Authentication
+
+Nanti kita akan pakai:
+
+### Backend
+
+- Tabel `users`
+- Password di-**hash** (bcrypt)
+- Endpoint:
+
+  - `POST /auth/login`
+  - `POST /auth/register`
+
+- Server mengeluarkan **JWT token**
+
+### Frontend
+
+- Login → kirim email & password ke backend
+- Backend balas:
+
+  ```json
+  { "token": "JWT-ASLI" }
+  ```
+
+- Token disimpan di:
+
+  - `localStorage` (belajar)
+  - atau `httpOnly cookie` (lebih aman)
+
+---
+
+## Alur login yang BENAR (gambarannya)
+
+```
+User isi email + password
+        ↓
+Frontend kirim ke backend
+        ↓
+Backend cek user di DB
+        ↓
+Password cocok?
+        ↓
+Backend buat JWT
+        ↓
+Frontend simpan JWT
+        ↓
+JWT dikirim di setiap request API
+```
+
+Contoh request API nanti:
+
+```http
+GET /assets
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+# Jadi kesimpulan penting (ingat ini)
+
+| Tahap                           | Login pakai apa              |
+| ------------------------------- | ---------------------------- |
+| **Sekarang**                    | Dummy token (`localStorage`) |
+| **Tujuan belajar UI & routing** | ✅ Sudah benar               |
+| **Keamanan sungguhan**          | ❌ Belum                     |
+| **Tahap selanjutnya**           | JWT + DB users               |
+
+---
+
+# Pertanyaan penting untuk lanjut
+
+Saya bisa lanjutkan ke **LOGIN SUNGGUHAN** sekarang.
+
+👉 Pilih:
+1️⃣ **Lanjut ke Login JWT + tabel users (paling penting & profesional)**
+2️⃣ Tunda login, lanjut **Dashboard statistik + Events CRUD** dulu
+3️⃣ Penjelasan ulang login dummy dengan analogi non-teknis
+
+Balas dengan angka **1 / 2 / 3**.
