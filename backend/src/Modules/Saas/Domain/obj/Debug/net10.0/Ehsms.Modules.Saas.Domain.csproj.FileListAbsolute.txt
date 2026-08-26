@@ -1,0 +1,16 @@
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\bin\Debug\net10.0\Ehsms.Modules.Saas.Domain.deps.json
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\bin\Debug\net10.0\Ehsms.Modules.Saas.Domain.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\bin\Debug\net10.0\Ehsms.Modules.Saas.Domain.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\bin\Debug\net10.0\Ehsms.BuildingBlocks.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\bin\Debug\net10.0\Ehsms.BuildingBlocks.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.csproj.AssemblyReference.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.AssemblyInfoInputs.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.AssemblyInfo.cs
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.csproj.CoreCompileInputs.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.sourcelink.json
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Mo.690A5CD3.Up2Date
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\refint\Ehsms.Modules.Saas.Domain.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\Ehsms.Modules.Saas.Domain.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Domain\obj\Debug\net10.0\ref\Ehsms.Modules.Saas.Domain.dll

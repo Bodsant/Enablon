@@ -1,0 +1,65 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Api/">
+    <Project Path="src/Api/Ehsms.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Ehsms.BuildingBlocks.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Identity/" />
+  <Folder Name="/src/Modules/Identity/Application/">
+    <Project Path="src/Modules/Identity/Application/Ehsms.Modules.Identity.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/Contracts/">
+    <Project Path="src/Modules/Identity/Contracts/Ehsms.Modules.Identity.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/Domain/">
+    <Project Path="src/Modules/Identity/Domain/Ehsms.Modules.Identity.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/Infrastructure/">
+    <Project Path="src/Modules/Identity/Infrastructure/Ehsms.Modules.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Organisation/" />
+  <Folder Name="/src/Modules/Organisation/Application/">
+    <Project Path="src/Modules/Organisation/Application/Ehsms.Modules.Organisation.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Organisation/Contracts/">
+    <Project Path="src/Modules/Organisation/Contracts/Ehsms.Modules.Organisation.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Organisation/Domain/">
+    <Project Path="src/Modules/Organisation/Domain/Ehsms.Modules.Organisation.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Organisation/Infrastructure/">
+    <Project Path="src/Modules/Organisation/Infrastructure/Ehsms.Modules.Organisation.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Platform/" />
+  <Folder Name="/src/Modules/Platform/Application/">
+    <Project Path="src/Modules/Platform/Application/Ehsms.Modules.Platform.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Platform/Contracts/">
+    <Project Path="src/Modules/Platform/Contracts/Ehsms.Modules.Platform.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Platform/Domain/">
+    <Project Path="src/Modules/Platform/Domain/Ehsms.Modules.Platform.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Platform/Infrastructure/">
+    <Project Path="src/Modules/Platform/Infrastructure/Ehsms.Modules.Platform.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Saas/" />
+  <Folder Name="/src/Modules/Saas/Application/">
+    <Project Path="src/Modules/Saas/Application/Ehsms.Modules.Saas.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Saas/Contracts/">
+    <Project Path="src/Modules/Saas/Contracts/Ehsms.Modules.Saas.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Saas/Domain/">
+    <Project Path="src/Modules/Saas/Domain/Ehsms.Modules.Saas.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Saas/Infrastructure/">
+    <Project Path="src/Modules/Saas/Infrastructure/Ehsms.Modules.Saas.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Worker/">
+    <Project Path="src/Worker/Ehsms.Worker.csproj" />
+  </Folder>
+</Solution>

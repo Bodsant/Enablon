@@ -1,0 +1,12 @@
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\bin\Debug\net10.0\Ehsms.Modules.Saas.Contracts.deps.json
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\bin\Debug\net10.0\Ehsms.Modules.Saas.Contracts.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\bin\Debug\net10.0\Ehsms.Modules.Saas.Contracts.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.AssemblyInfoInputs.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.AssemblyInfo.cs
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.csproj.CoreCompileInputs.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.sourcelink.json
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\refint\Ehsms.Modules.Saas.Contracts.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\Ehsms.Modules.Saas.Contracts.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Saas\Contracts\obj\Debug\net10.0\ref\Ehsms.Modules.Saas.Contracts.dll

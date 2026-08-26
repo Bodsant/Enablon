@@ -1,0 +1,16 @@
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\bin\Debug\net10.0\Ehsms.Modules.Organisation.Domain.deps.json
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\bin\Debug\net10.0\Ehsms.Modules.Organisation.Domain.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\bin\Debug\net10.0\Ehsms.Modules.Organisation.Domain.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\bin\Debug\net10.0\Ehsms.BuildingBlocks.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\bin\Debug\net10.0\Ehsms.BuildingBlocks.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.csproj.AssemblyReference.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.AssemblyInfoInputs.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.AssemblyInfo.cs
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.csproj.CoreCompileInputs.cache
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.sourcelink.json
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Mo.59F3579C.Up2Date
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\refint\Ehsms.Modules.Organisation.Domain.dll
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\Ehsms.Modules.Organisation.Domain.pdb
+C:\Users\muhammad.husni\source\repos\enablon\backend\src\Modules\Organisation\Domain\obj\Debug\net10.0\ref\Ehsms.Modules.Organisation.Domain.dll
