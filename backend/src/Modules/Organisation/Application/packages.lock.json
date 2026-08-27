@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0": {
+      "ehsms.buildingblocks": {
+        "type": "Project"
+      },
+      "ehsms.modules.organisation.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.organisation.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

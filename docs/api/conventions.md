@@ -1,0 +1,2 @@
+# API conventions
+**DECIDED:** `/api/v1`, UTF-8 camelCase JSON, ISO-8601 UTC, RFC 7807 errors, `X-Correlation-ID`, allow-listed filtering/sorting, concurrency and idempotency contracts where relevant. This scaffold implements Problem Details registration, correlation response, safe headers and non-business metadata only. **FUTURE:** auth, resource APIs, pagination, OpenAPI and domain error codes. No stack traces or secrets belong in responses/logs.

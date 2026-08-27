@@ -1,22 +1,35 @@
 {
-  "name": "frontend",
+  "name": "enablon-web",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "ng serve",
+    "build": "ng build",
+    "test": "ng test --watch=false"
   },
   "dependencies": {
-    "vue": "^3.5.24",
-    "vue-router": "^4.6.4"
+    "@angular/animations": "20.3.29",
+    "@angular/common": "20.3.29",
+    "@angular/compiler": "20.3.29",
+    "@angular/core": "20.3.29",
+    "@angular/platform-browser": "20.3.29",
+    "@angular/platform-browser-dynamic": "20.3.29",
+    "@angular/router": "20.3.29",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1",
+    "zone.js": "0.15.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.1",
-    "vite": "npm:rolldown-vite@7.2.5"
-  },
-  "overrides": {
-    "vite": "npm:rolldown-vite@7.2.5"
+    "@angular-devkit/build-angular": "20.3.35",
+    "@angular/cli": "20.3.35",
+    "@angular/compiler-cli": "20.3.29",
+    "@types/jasmine": "5.1.9",
+    "jasmine-core": "5.9.0",
+    "karma": "6.4.4",
+    "karma-chrome-launcher": "3.2.0",
+    "karma-coverage": "2.2.1",
+    "karma-jasmine": "5.1.0",
+    "karma-jasmine-html-reporter": "2.1.0",
+    "typescript": "5.9.3"
   }
 }

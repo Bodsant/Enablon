@@ -1,85 +1,47 @@
-using Ehsms.BuildingBlocks;
-using Ehsms.Modules.Platform.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using Serilog;
-using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// === Serilog ===
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .CreateLogger();
-builder.Host.UseSerilog();
-
-// === Database ===
-builder.Services.AddDbContext<EhsmsDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsql => npgsql.MigrationsAssembly(typeof(EhsmsDbContext).Assembly.FullName)));
-
-// === Building Blocks ===
-builder.Services.AddSingleton<IClock, UtcClock>();
-builder.Services.AddScoped<ITenantContext, TenantContext>();
-builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<EhsmsDbContext>());
-
-// === MediatR ===
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(EhsmsDbContext).Assembly));
-
-// === Controllers ===
-builder.Services.AddControllers()
-    .AddJsonOptions(o =>
-    {
-        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
-
-// === Swagger ===
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "EHSMS API", Version = "v1" });
-});
-
-// === CORS ===
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAngular", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
-
-// === Health Checks ===
-builder.Services.AddHealthChecks();
+builder.Services.AddProblemDetails();
+builder.Services.AddHealthChecks().AddCheck(
+    "process-readiness",
+    () => HealthCheckResult.Healthy(),
+    tags: ["live", "ready"]);
 
 var app = builder.Build();
-
-// === Pipeline ===
-if (app.Environment.IsDevelopment())
+app.UseExceptionHandler();
+app.Use(async (context, next) =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    const string header = "X-Correlation-ID";
+    var correlationId = context.Request.Headers[header].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(correlationId)) correlationId = context.TraceIdentifier;
+    context.Response.Headers[header] = correlationId;
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+    await next();
+});
 
-app.UseCors("AllowAngular");
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
-app.MapHealthChecks("/health/live");
-app.MapHealthChecks("/health/ready");
-
-// === Auto-migrate in Development ===
-if (app.Environment.IsDevelopment())
+app.MapGet("/api/v1/architecture/info", () => Results.Ok(new
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<EhsmsDbContext>();
-    await db.Database.MigrateAsync();
-}
-
+    name = "ENABLON EHSMS",
+    capability = "architecture-scaffold",
+    businessFeaturesImplemented = false,
+    authentication = "not-configured"
+}));
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = check => check.Tags.Contains("live") });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Keys.Order().ToArray()
+        });
+    }
+});
 app.Run();
+public partial class Program;

@@ -1,7 +1,4 @@
 using Ehsms.Worker;
-
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<Worker>();
-
-var host = builder.Build();
-host.Run();
+builder.Services.AddHostedService<ArchitectureWorker>();
+await builder.Build().RunAsync();

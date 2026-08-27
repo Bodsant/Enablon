@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0": {
+      "ehsms.buildingblocks": {
+        "type": "Project"
+      },
+      "ehsms.modules.saas.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.saas.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.saas.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}
