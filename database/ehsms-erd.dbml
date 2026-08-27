@@ -1,0 +1,2615 @@
+Project EHSMS_Final_PRD {
+  database_type: 'PostgreSQL'
+  Note: 'Logical ERD aligned to PRD v1.1 Final Revised, 26 Aug 2026.'
+}
+
+
+// ============================================================
+// SAAS
+// ============================================================
+
+Table saas.subscription_plans {
+  id uuid [pk]
+  code varchar(30) [not null, unique]
+  name varchar(100) [not null]
+  description text
+  is_active boolean [not null, default: true]
+}
+
+Table saas.plan_versions {
+  id uuid [pk]
+  subscription_plan_id uuid [not null]
+  version_number int [not null]
+  max_active_users int [not null]
+  max_companies int
+  max_business_units int
+  max_sites int
+  max_storage_bytes bigint [not null]
+  max_period_upload_bytes bigint [not null]
+  max_file_size_bytes bigint [not null]
+  effective_from timestamptz [not null]
+  effective_until timestamptz
+  is_current boolean [not null]
+}
+
+Table saas.tenants {
+  id uuid [pk]
+  tenant_code varchar(30) [not null, unique]
+  slug varchar(100) [not null, unique]
+  display_name varchar(200) [not null]
+  timezone varchar(60) [not null]
+  billing_anchor_day smallint [not null]
+  status varchar(30) [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table saas.tenant_subscriptions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  plan_version_id uuid [not null]
+  status varchar(30) [not null]
+  started_at timestamptz [not null]
+  current_period_start timestamptz [not null]
+  current_period_end timestamptz [not null]
+  next_reset_at timestamptz [not null]
+  scheduled_plan_version_id uuid
+  scheduled_change_at timestamptz
+}
+
+Table saas.tenant_storage_usage {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  active_bytes bigint [not null]
+  recycle_bin_bytes bigint [not null]
+  quarantined_bytes bigint [not null]
+  reserved_bytes bigint [not null]
+  object_count bigint [not null]
+  lock_version int [not null]
+  reconciled_at timestamptz
+}
+
+Table saas.tenant_usage_periods {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  tenant_subscription_id uuid [not null]
+  period_start timestamptz [not null]
+  period_end timestamptz [not null]
+  uploaded_bytes bigint [not null]
+  reserved_upload_bytes bigint [not null]
+  upload_count bigint [not null]
+  status varchar(20) [not null]
+  lock_version int [not null]
+}
+
+Table saas.usage_events {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  usage_period_id uuid
+  event_type varchar(50) [not null]
+  reference_id uuid
+  storage_bytes_delta bigint [not null]
+  upload_bytes_delta bigint [not null]
+  metadata_json jsonb
+  occurred_at timestamptz [not null]
+}
+
+Table saas.upload_sessions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  usage_period_id uuid [not null]
+  requested_by_user_id uuid [not null]
+  original_file_name varchar(255) [not null]
+  mime_type varchar(150) [not null]
+  requested_size_bytes bigint [not null]
+  object_key varchar(600) [not null, unique]
+  status varchar(30) [not null]
+  expires_at timestamptz [not null]
+  completed_at timestamptz
+}
+
+
+// ============================================================
+// ORG
+// ============================================================
+
+Table org.companies {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(40) [not null]
+  name varchar(200) [not null]
+  legal_name varchar(250)
+  registration_number varchar(100)
+  status varchar(20) [not null]
+  effective_from date
+  effective_to date
+}
+
+Table org.business_units {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  company_id uuid [not null]
+  parent_business_unit_id uuid
+  code varchar(40) [not null]
+  name varchar(200) [not null]
+  status varchar(20) [not null]
+}
+
+Table org.sites {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  company_id uuid [not null]
+  business_unit_id uuid
+  code varchar(40) [not null]
+  name varchar(200) [not null]
+  address text
+  timezone varchar(60) [not null]
+  latitude decimal(10,7)
+  longitude decimal(10,7)
+  status varchar(20) [not null]
+}
+
+Table org.departments {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  business_unit_id uuid
+  site_id uuid
+  parent_department_id uuid
+  code varchar(40) [not null]
+  name varchar(200) [not null]
+  status varchar(20) [not null]
+}
+
+Table org.locations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  site_id uuid [not null]
+  parent_location_id uuid
+  code varchar(40) [not null]
+  name varchar(200) [not null]
+  location_type varchar(60)
+  status varchar(20) [not null]
+}
+
+Table org.positions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(150) [not null]
+  description text
+  status varchar(20) [not null]
+}
+
+Table org.people {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  person_type varchar(30) [not null]
+  full_name varchar(200) [not null]
+  email varchar(254)
+  phone varchar(50)
+  status varchar(20) [not null]
+  data_classification_id uuid
+}
+
+Table org.employees {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  person_id uuid [not null, unique]
+  employee_number varchar(50) [not null]
+  company_id uuid [not null]
+  department_id uuid
+  position_id uuid
+  manager_person_id uuid
+  employment_status varchar(30) [not null]
+  source_system varchar(60)
+  source_id varchar(100)
+}
+
+
+// ============================================================
+// IAM
+// ============================================================
+
+Table iam.users {
+  id uuid [pk]
+  email varchar(254) [not null, unique]
+  normalized_email varchar(254) [not null, unique]
+  password_hash text
+  identity_provider varchar(80)
+  external_subject varchar(200)
+  status varchar(20) [not null]
+  last_login_at timestamptz
+}
+
+Table iam.tenant_members {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  user_id uuid [not null]
+  person_id uuid
+  display_name varchar(200) [not null]
+  status varchar(20) [not null]
+  activated_at timestamptz
+  deactivated_at timestamptz
+}
+
+Table iam.roles {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(120) [not null]
+  scope_type varchar(20) [not null]
+  is_system boolean [not null]
+}
+
+Table iam.permissions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(100) [not null]
+  module varchar(50) [not null]
+  action varchar(50) [not null]
+  description text
+}
+
+Table iam.role_permissions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  role_id uuid [not null]
+  permission_id uuid [not null]
+}
+
+Table iam.member_roles {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  tenant_member_id uuid [not null]
+  role_id uuid [not null]
+}
+
+Table iam.access_scopes {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  scope_type varchar(30) [not null]
+  company_id uuid
+  business_unit_id uuid
+  site_id uuid
+  department_id uuid
+  location_id uuid
+  contractor_company_id uuid
+  data_classification_id uuid
+}
+
+Table iam.member_access_scopes {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  tenant_member_id uuid [not null]
+  access_scope_id uuid [not null]
+}
+
+Table iam.temporary_access_grants {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  tenant_member_id uuid [not null]
+  access_scope_id uuid [not null]
+  role_id uuid
+  approved_by_member_id uuid [not null]
+  reason text [not null]
+  valid_from timestamptz [not null]
+  valid_until timestamptz [not null]
+}
+
+Table iam.access_reviews {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  review_period_start date [not null]
+  review_period_end date [not null]
+  reviewer_member_id uuid [not null]
+  status varchar(20) [not null]
+  completed_at timestamptz
+}
+
+Table iam.refresh_tokens {
+  id uuid [pk]
+  user_id uuid [not null]
+  token_hash varchar(255) [not null, unique]
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  replaced_by_token_id uuid
+}
+
+
+// ============================================================
+// PLATFORM
+// ============================================================
+
+Table platform.data_classifications {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(30) [not null]
+  name varchar(100) [not null]
+  rank smallint [not null]
+  is_restricted boolean [not null]
+}
+
+Table platform.retention_policies {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_type varchar(60) [not null]
+  classification_id uuid
+  retention_days int
+  archive_after_days int
+  recycle_bin_days int
+  legal_hold_supported boolean [not null]
+}
+
+Table platform.records {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  module_code varchar(40) [not null]
+  record_type varchar(60) [not null]
+  record_number varchar(60) [not null]
+  company_id uuid
+  business_unit_id uuid
+  site_id uuid
+  department_id uuid
+  location_id uuid
+  data_classification_id uuid [not null]
+  status varchar(40) [not null]
+  title varchar(250)
+  created_by_member_id uuid [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  archived_at timestamptz
+  voided_at timestamptz
+}
+
+Table platform.record_links {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  source_record_id uuid [not null]
+  target_record_id uuid [not null]
+  link_type varchar(60) [not null]
+  created_by_member_id uuid [not null]
+  created_at timestamptz [not null]
+}
+
+Table platform.workflow_definitions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(150) [not null]
+  module_code varchar(40) [not null]
+  status varchar(20) [not null]
+}
+
+Table platform.workflow_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  workflow_definition_id uuid [not null]
+  version_number int [not null]
+  effective_from timestamptz [not null]
+  effective_to timestamptz
+  status varchar(20) [not null]
+}
+
+Table platform.workflow_states {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  workflow_version_id uuid [not null]
+  state_code varchar(50) [not null]
+  state_name varchar(100) [not null]
+  is_initial boolean [not null]
+  is_terminal boolean [not null]
+}
+
+Table platform.workflow_transitions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  workflow_version_id uuid [not null]
+  from_state_id uuid [not null]
+  to_state_id uuid [not null]
+  action_code varchar(50) [not null]
+  required_permission_id uuid
+  validation_rule_json jsonb
+  requires_comment boolean [not null]
+}
+
+Table platform.workflow_instances {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  workflow_version_id uuid [not null]
+  current_state_id uuid [not null]
+  started_at timestamptz [not null]
+  completed_at timestamptz
+}
+
+Table platform.workflow_tasks {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  workflow_instance_id uuid [not null]
+  task_type varchar(40) [not null]
+  assigned_member_id uuid
+  assigned_role_id uuid
+  due_at timestamptz
+  priority varchar(20)
+  status varchar(30) [not null]
+  completed_at timestamptz
+}
+
+Table platform.workflow_decisions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  workflow_task_id uuid [not null]
+  transition_id uuid
+  decision varchar(30) [not null]
+  comment text
+  decided_by_member_id uuid [not null]
+  decided_at timestamptz [not null]
+}
+
+Table platform.escalation_rules {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  workflow_version_id uuid
+  event_code varchar(60) [not null]
+  condition_json jsonb [not null]
+  action_json jsonb [not null]
+  is_active boolean [not null]
+}
+
+Table platform.file_objects {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  upload_session_id uuid
+  bucket_name varchar(100) [not null]
+  object_key varchar(600) [not null, unique]
+  original_file_name varchar(255) [not null]
+  mime_type varchar(150) [not null]
+  object_size_bytes bigint [not null]
+  checksum_sha256 varchar(64) [not null]
+  status varchar(30) [not null]
+  uploaded_by_user_id uuid [not null]
+  deleted_at timestamptz
+  purge_after timestamptz
+  purged_at timestamptz
+}
+
+Table platform.evidence_links {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null]
+  file_object_id uuid [not null]
+  evidence_type varchar(50) [not null]
+  document_revision_id uuid
+  link_status varchar(20) [not null]
+  linked_by_member_id uuid [not null]
+  linked_at timestamptz [not null]
+  invalidation_reason text
+}
+
+Table platform.notifications {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  recipient_member_id uuid [not null]
+  record_id uuid
+  notification_type varchar(60) [not null]
+  title varchar(200) [not null]
+  message text [not null]
+  delivery_channel varchar(30)
+  delivery_status varchar(30)
+  read_at timestamptz
+}
+
+Table platform.audit_logs {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid
+  user_id uuid
+  tenant_member_id uuid
+  action_code varchar(100) [not null]
+  before_json jsonb
+  after_json jsonb
+  ip_address varchar(64)
+  correlation_id varchar(100)
+  occurred_at timestamptz [not null]
+}
+
+Table platform.outbox_messages {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid
+  event_type varchar(100) [not null]
+  payload_json jsonb [not null]
+  status varchar(20) [not null]
+  attempt_count int [not null]
+  next_retry_at timestamptz
+  occurred_at timestamptz [not null]
+}
+
+Table platform.number_sequences {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  sequence_code varchar(40) [not null]
+  period_key varchar(20) [not null]
+  current_value bigint [not null]
+  lock_version int [not null]
+}
+
+Table platform.lookup_values {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  category varchar(80) [not null]
+  code varchar(60) [not null]
+  label varchar(150) [not null]
+  effective_from date
+  effective_to date
+  status varchar(20) [not null]
+  metadata_json jsonb
+}
+
+
+// ============================================================
+// DOCUMENT
+// ============================================================
+
+Table document.controlled_documents {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  document_number varchar(60) [not null]
+  document_type varchar(50) [not null]
+  title varchar(250) [not null]
+  owner_member_id uuid [not null]
+  review_date date
+  status varchar(30) [not null]
+}
+
+Table document.revisions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  controlled_document_id uuid [not null]
+  revision_number varchar(30) [not null]
+  file_object_id uuid [not null]
+  effective_date date
+  status varchar(30) [not null]
+  approved_by_member_id uuid
+}
+
+Table document.acknowledgements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  document_revision_id uuid [not null]
+  tenant_member_id uuid [not null]
+  acknowledged_at timestamptz [not null]
+}
+
+
+// ============================================================
+// SAFETY
+// ============================================================
+
+Table safety.observations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  observation_type varchar(40) [not null]
+  reporter_member_id uuid [not null]
+  reporter_visibility varchar(30) [not null]
+  potential_impact text
+  description text [not null]
+  immediate_action text
+  initial_risk_level varchar(30)
+  assigned_member_id uuid
+  due_date date
+}
+
+
+// ============================================================
+// RISK
+// ============================================================
+
+Table risk.hazards {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  category_id uuid
+  description text
+  status varchar(20) [not null]
+}
+
+Table risk.matrix_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  name varchar(150) [not null]
+  version_number int [not null]
+  likelihood_scale int [not null]
+  severity_scale int [not null]
+  effective_from date [not null]
+  effective_to date
+  status varchar(20) [not null]
+}
+
+Table risk.matrix_cells {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  matrix_version_id uuid [not null]
+  likelihood_value smallint [not null]
+  severity_value smallint [not null]
+  risk_score int [not null]
+  risk_level_code varchar(30) [not null]
+}
+
+Table risk.registers {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  hazard_id uuid [not null]
+  activity_name varchar(200) [not null]
+  risk_event text [not null]
+  owner_member_id uuid [not null]
+  review_date date
+  status varchar(30) [not null]
+}
+
+Table risk.assessments {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  risk_register_id uuid [not null]
+  matrix_version_id uuid [not null]
+  assessment_type varchar(20) [not null]
+  sequence_number int [not null]
+  likelihood_value smallint [not null]
+  severity_value smallint [not null]
+  risk_score int [not null]
+  risk_level_code varchar(30) [not null]
+  assessed_by_member_id uuid [not null]
+  assessed_at timestamptz [not null]
+}
+
+Table risk.controls {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  risk_register_id uuid [not null]
+  control_type varchar(40) [not null]
+  control_stage varchar(20) [not null]
+  description text [not null]
+  owner_member_id uuid
+  due_date date
+  status varchar(30) [not null]
+  effectiveness_rating smallint
+}
+
+Table risk.reviews {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  risk_register_id uuid [not null]
+  reviewed_by_member_id uuid [not null]
+  reviewed_at timestamptz [not null]
+  decision varchar(30) [not null]
+  comment text
+}
+
+
+// ============================================================
+// INCIDENT
+// ============================================================
+
+Table incident.incidents {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  incident_type_id uuid [not null]
+  severity_id uuid [not null]
+  occurred_at timestamptz [not null]
+  reported_at timestamptz [not null]
+  reported_by_member_id uuid [not null]
+  description text [not null]
+  immediate_action text
+  classification_status varchar(30)
+}
+
+Table incident.involved_people {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  incident_id uuid [not null]
+  person_id uuid
+  external_person_name varchar(200)
+  involvement_type varchar(40) [not null]
+  injury_classification_id uuid
+  lost_work_days int
+}
+
+Table incident.investigations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  incident_id uuid [not null]
+  lead_investigator_member_id uuid [not null]
+  method varchar(80)
+  summary text
+  status varchar(30) [not null]
+  started_at timestamptz
+  completed_at timestamptz
+}
+
+Table incident.investigation_team {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  investigation_id uuid [not null]
+  tenant_member_id uuid [not null]
+  team_role varchar(80)
+}
+
+Table incident.root_causes {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  investigation_id uuid [not null]
+  cause_type varchar(30) [not null]
+  category_id uuid
+  description text [not null]
+  evidence_summary text
+}
+
+Table incident.classification_reviews {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  incident_id uuid [not null]
+  reviewer_member_id uuid [not null]
+  classification_json jsonb [not null]
+  decision varchar(30) [not null]
+  reviewed_at timestamptz [not null]
+}
+
+
+// ============================================================
+// CAPA
+// ============================================================
+
+Table capa.actions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  action_type varchar(20) [not null]
+  description text [not null]
+  owner_member_id uuid [not null]
+  priority varchar(20) [not null]
+  due_date date [not null]
+  progress_percentage smallint [not null]
+  verification_required boolean [not null]
+}
+
+Table capa.sources {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  action_id uuid [not null]
+  source_record_id uuid [not null]
+  source_role varchar(40)
+}
+
+Table capa.updates {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  action_id uuid [not null]
+  progress_percentage smallint [not null]
+  note text [not null]
+  updated_by_member_id uuid [not null]
+  updated_at timestamptz [not null]
+}
+
+Table capa.verifications {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  action_id uuid [not null]
+  verifier_member_id uuid [not null]
+  result varchar(30) [not null]
+  comment text
+  verified_at timestamptz [not null]
+}
+
+
+// ============================================================
+// COW
+// ============================================================
+
+Table cow.work_requests {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  requester_member_id uuid [not null]
+  work_description text [not null]
+  contractor_company_id uuid
+  planned_start timestamptz
+  planned_end timestamptz
+  work_type varchar(60) [not null]
+}
+
+Table cow.jsa_templates {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  owner_member_id uuid [not null]
+  status varchar(20) [not null]
+}
+
+Table cow.jsa_template_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  jsa_template_id uuid [not null]
+  version_number int [not null]
+  site_id uuid
+  effective_from date
+  status varchar(20) [not null]
+}
+
+Table cow.jsa_template_steps {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  jsa_template_version_id uuid [not null]
+  sequence_number int [not null]
+  work_step text [not null]
+}
+
+Table cow.jsas {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  work_request_id uuid [not null]
+  template_version_id uuid
+  prepared_by_member_id uuid [not null]
+  status varchar(30) [not null]
+  overall_residual_risk varchar(30)
+}
+
+Table cow.jsa_steps {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  jsa_id uuid [not null]
+  sequence_number int [not null]
+  work_step text [not null]
+}
+
+Table cow.jsa_step_hazards {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  jsa_step_id uuid [not null]
+  hazard_id uuid
+  consequence text [not null]
+  existing_control text
+  additional_control text
+  initial_risk_level varchar(30)
+  residual_risk_level varchar(30)
+  responsible_member_id uuid
+}
+
+Table cow.permit_types {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(150) [not null]
+  risk_category varchar(40)
+  status varchar(20) [not null]
+}
+
+Table cow.permit_type_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_type_id uuid [not null]
+  version_number int [not null]
+  effective_from date [not null]
+  effective_to date
+  configuration_json jsonb
+  status varchar(20) [not null]
+}
+
+Table cow.permit_checklist_items {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_type_version_id uuid [not null]
+  sequence_number int [not null]
+  prompt text [not null]
+  is_mandatory boolean [not null]
+  validation_type varchar(30)
+}
+
+Table cow.permits {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  work_request_id uuid [not null]
+  jsa_id uuid
+  permit_type_version_id uuid [not null]
+  requester_member_id uuid [not null]
+  executor_person_id uuid
+  contractor_company_id uuid
+  valid_from timestamptz
+  valid_until timestamptz
+  suspension_reason text
+  extension_count int [not null]
+}
+
+Table cow.permit_workers {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_id uuid [not null]
+  person_id uuid [not null]
+  work_role varchar(60)
+  eligibility_status varchar(30) [not null]
+}
+
+Table cow.permit_checklist_responses {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_id uuid [not null]
+  checklist_item_id uuid [not null]
+  response_json jsonb
+  is_satisfied boolean
+  checked_by_member_id uuid
+  checked_at timestamptz
+}
+
+Table cow.permit_approvals {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_id uuid [not null]
+  workflow_task_id uuid [not null]
+  approval_level int [not null]
+  decision varchar(30)
+  approver_member_id uuid
+  decided_at timestamptz
+}
+
+Table cow.gas_tests {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_id uuid [not null]
+  test_type varchar(50) [not null]
+  tested_at timestamptz [not null]
+  tested_by_person_id uuid
+  oxygen_pct decimal(6,3)
+  lel_pct decimal(6,3)
+  toxic_gas_json jsonb
+  result varchar(30) [not null]
+}
+
+Table cow.work_executions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  permit_id uuid [not null]
+  started_at timestamptz
+  completed_at timestamptz
+  execution_status varchar(30) [not null]
+  completion_notes text
+}
+
+Table cow.work_monitoring {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  work_execution_id uuid [not null]
+  monitored_by_member_id uuid [not null]
+  monitored_at timestamptz [not null]
+  condition_status varchar(30) [not null]
+  notes text
+}
+
+Table cow.isolation_plans {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  permit_id uuid [not null]
+  prepared_by_member_id uuid [not null]
+  status varchar(30) [not null]
+}
+
+Table cow.isolation_points {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  isolation_plan_id uuid [not null]
+  asset_id uuid
+  energy_source varchar(80) [not null]
+  isolation_method varchar(100) [not null]
+  point_identifier varchar(100) [not null]
+}
+
+Table cow.isolation_locks {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  isolation_point_id uuid [not null]
+  lock_identifier varchar(100) [not null]
+  tag_identifier varchar(100)
+  applied_by_person_id uuid [not null]
+  applied_at timestamptz [not null]
+  removed_by_person_id uuid
+  removed_at timestamptz
+}
+
+Table cow.isolation_verifications {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  isolation_point_id uuid [not null]
+  verification_type varchar(50) [not null]
+  result varchar(30) [not null]
+  verified_by_person_id uuid [not null]
+  verified_at timestamptz [not null]
+  comment text
+}
+
+
+// ============================================================
+// INSPECTION
+// ============================================================
+
+Table inspection.templates {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  inspection_type varchar(60)
+  owner_member_id uuid [not null]
+  status varchar(20) [not null]
+}
+
+Table inspection.template_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  template_id uuid [not null]
+  version_number int [not null]
+  effective_from date
+  status varchar(20) [not null]
+}
+
+Table inspection.template_sections {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  template_version_id uuid [not null]
+  title varchar(200) [not null]
+  sequence_number int [not null]
+}
+
+Table inspection.template_items {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  section_id uuid [not null]
+  item_code varchar(50) [not null]
+  prompt text [not null]
+  response_type varchar(30) [not null]
+  is_required boolean [not null]
+  weight decimal(10,2)
+  criteria_json jsonb
+  sequence_number int [not null]
+}
+
+Table inspection.schedules {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  template_version_id uuid [not null]
+  site_id uuid [not null]
+  location_id uuid
+  assigned_member_id uuid
+  recurrence_rule varchar(300)
+  next_execution_at timestamptz
+  status varchar(20) [not null]
+}
+
+Table inspection.inspections {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  schedule_id uuid
+  template_version_id uuid [not null]
+  inspector_member_id uuid [not null]
+  planned_at timestamptz
+  started_at timestamptz
+  completed_at timestamptz
+  compliance_percentage decimal(5,2)
+}
+
+Table inspection.responses {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  inspection_id uuid [not null]
+  template_item_id uuid [not null]
+  response_json jsonb
+  compliance_status varchar(30)
+  score decimal(10,2)
+  comment text
+  answered_by_member_id uuid [not null]
+}
+
+Table inspection.findings {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  inspection_id uuid [not null]
+  response_id uuid
+  classification varchar(40)
+  severity_id uuid
+  description text [not null]
+  owner_member_id uuid
+}
+
+
+// ============================================================
+// AUDIT
+// ============================================================
+
+Table audit.programs {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  name varchar(200) [not null]
+  period_start date
+  period_end date
+  owner_member_id uuid [not null]
+  status varchar(30) [not null]
+}
+
+Table audit.checklist_templates {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  standard_reference varchar(200)
+  version_number int [not null]
+  status varchar(20) [not null]
+}
+
+Table audit.checklist_items {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  checklist_template_id uuid [not null]
+  sequence_number int [not null]
+  requirement_reference varchar(200)
+  prompt text [not null]
+  classification_rule_json jsonb
+}
+
+Table audit.audits {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  audit_program_id uuid
+  checklist_template_id uuid
+  audit_type varchar(50) [not null]
+  scope_text text [not null]
+  criteria_text text
+  lead_auditor_member_id uuid [not null]
+  scheduled_start date
+  scheduled_end date
+}
+
+Table audit.team_members {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  audit_id uuid [not null]
+  tenant_member_id uuid [not null]
+  audit_role varchar(60)
+}
+
+Table audit.responses {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  audit_id uuid [not null]
+  checklist_item_id uuid [not null]
+  response varchar(30)
+  comment text
+  auditor_member_id uuid [not null]
+}
+
+Table audit.findings {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  audit_id uuid [not null]
+  audit_response_id uuid
+  classification varchar(40) [not null]
+  requirement_reference varchar(200)
+  description text [not null]
+  recommendation text
+  owner_member_id uuid
+}
+
+
+// ============================================================
+// COMPLIANCE
+// ============================================================
+
+Table compliance.legal_sources {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  source_type varchar(40) [not null]
+  code varchar(100)
+  title varchar(300) [not null]
+  jurisdiction varchar(100)
+  publisher varchar(200)
+  source_url text
+  status varchar(30) [not null]
+}
+
+Table compliance.legal_source_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  legal_source_id uuid [not null]
+  version_label varchar(100) [not null]
+  published_date date
+  effective_date date
+  superseded_date date
+  change_summary text
+}
+
+Table compliance.obligations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  legal_source_version_id uuid [not null]
+  clause_reference varchar(150)
+  requirement_text text [not null]
+  owner_member_id uuid [not null]
+  frequency varchar(80)
+  due_date date
+  last_review date
+  next_review date
+}
+
+Table compliance.obligation_applicability {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  obligation_id uuid [not null]
+  company_id uuid
+  business_unit_id uuid
+  site_id uuid
+  applicability_status varchar(30) [not null]
+  rationale text
+  assessed_by_member_id uuid [not null]
+}
+
+Table compliance.evaluations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  obligation_id uuid [not null]
+  evaluation_period_start date
+  evaluation_period_end date
+  compliance_status varchar(30) [not null]
+  evaluated_by_member_id uuid [not null]
+  evaluated_at timestamptz [not null]
+  comment text
+}
+
+Table compliance.gaps {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  evaluation_id uuid [not null]
+  gap_description text [not null]
+  severity varchar(30)
+  owner_member_id uuid
+  target_date date
+}
+
+
+// ============================================================
+// CONTRACTOR
+// ============================================================
+
+Table contractor.companies {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  vendor_code varchar(60)
+  name varchar(250) [not null]
+  tax_identifier varchar(100)
+  qualification_status varchar(30)
+  eligibility_status varchar(30)
+  status varchar(20) [not null]
+}
+
+Table contractor.contracts {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  contractor_company_id uuid [not null]
+  contract_number varchar(80)
+  start_date date
+  end_date date
+  contract_status varchar(30)
+  procurement_source_id varchar(100)
+}
+
+Table contractor.workers {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  person_id uuid [not null, unique]
+  contractor_company_id uuid [not null]
+  worker_number varchar(60)
+  position_name varchar(150)
+  eligibility_status varchar(30)
+  status varchar(20) [not null]
+}
+
+Table contractor.documents {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  contractor_company_id uuid
+  contractor_worker_id uuid
+  document_type varchar(60) [not null]
+  document_number varchar(100)
+  file_object_id uuid [not null]
+  issue_date date
+  expiry_date date
+  verification_status varchar(30)
+}
+
+Table contractor.qualification_evaluations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  contractor_company_id uuid [not null]
+  evaluation_type varchar(50) [not null]
+  result varchar(30) [not null]
+  score decimal(10,2)
+  evaluated_by_member_id uuid [not null]
+  valid_until date
+}
+
+Table contractor.performance_periods {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  contractor_company_id uuid [not null]
+  period_start date [not null]
+  period_end date [not null]
+  indicator_values_json jsonb
+  overall_rating decimal(10,2)
+}
+
+
+// ============================================================
+// TRAINING
+// ============================================================
+
+Table training.courses {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  validity_months int
+  provider_type varchar(40)
+  status varchar(20) [not null]
+}
+
+Table training.competencies {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  description text
+  status varchar(20) [not null]
+}
+
+Table training.position_requirements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  position_id uuid [not null]
+  competency_id uuid [not null]
+  course_id uuid
+  is_mandatory boolean [not null]
+  minimum_level varchar(30)
+}
+
+Table training.sessions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  course_id uuid [not null]
+  provider_name varchar(200)
+  starts_at timestamptz
+  ends_at timestamptz
+  capacity int
+  status varchar(30) [not null]
+}
+
+Table training.session_participants {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  training_session_id uuid [not null]
+  person_id uuid [not null]
+  attendance_status varchar(30)
+  assessment_score decimal(10,2)
+  result varchar(30)
+}
+
+Table training.worker_competencies {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  person_id uuid [not null]
+  competency_id uuid [not null]
+  level varchar(30)
+  status varchar(30) [not null]
+  valid_from date
+  valid_until date
+}
+
+Table training.certifications {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  person_id uuid [not null]
+  course_id uuid
+  certificate_number varchar(100)
+  issued_at date
+  expires_at date
+  file_object_id uuid
+  verification_status varchar(30)
+}
+
+Table training.eligibility_checks {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  person_id uuid [not null]
+  target_record_id uuid [not null]
+  result varchar(30) [not null]
+  checked_at timestamptz [not null]
+  details_json jsonb
+}
+
+Table training.eligibility_overrides {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  eligibility_check_id uuid [not null]
+  approved_by_member_id uuid [not null]
+  reason text [not null]
+  valid_until timestamptz
+}
+
+
+// ============================================================
+// PPE
+// ============================================================
+
+Table ppe.catalog {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  ppe_category varchar(60)
+  inspection_interval_days int
+  replacement_interval_days int
+  status varchar(20) [not null]
+}
+
+Table ppe.inventory {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  ppe_catalog_id uuid [not null]
+  site_id uuid [not null]
+  serial_number varchar(100)
+  quantity_on_hand int
+  condition varchar(30)
+  status varchar(30) [not null]
+}
+
+Table ppe.requirements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  ppe_catalog_id uuid [not null]
+  source_record_id uuid
+  permit_type_id uuid
+  is_mandatory boolean [not null]
+  notes text
+}
+
+Table ppe.assignments {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  ppe_inventory_id uuid [not null]
+  person_id uuid [not null]
+  issued_at timestamptz [not null]
+  issued_by_member_id uuid [not null]
+  returned_at timestamptz
+  condition_on_return varchar(30)
+}
+
+Table ppe.inspections {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  ppe_inventory_id uuid [not null]
+  inspected_by_member_id uuid [not null]
+  inspected_at timestamptz [not null]
+  condition varchar(30) [not null]
+  result varchar(30) [not null]
+  next_due_date date
+}
+
+Table ppe.replacements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  ppe_assignment_id uuid [not null]
+  replacement_reason varchar(80) [not null]
+  requested_at timestamptz [not null]
+  completed_at timestamptz
+}
+
+
+// ============================================================
+// HEALTH
+// ============================================================
+
+Table health.profiles {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  person_id uuid [not null, unique]
+  restricted_identifier varchar(100)
+  data_classification_id uuid [not null]
+}
+
+Table health.surveillance_programs {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  exposure_type varchar(100)
+  frequency_months int
+  status varchar(20) [not null]
+}
+
+Table health.surveillance_events {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  health_profile_id uuid [not null]
+  surveillance_program_id uuid [not null]
+  scheduled_date date
+  completed_date date
+  authorized_provider varchar(200)
+  result_summary_code varchar(50)
+}
+
+Table health.fitness_statuses {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  health_profile_id uuid [not null]
+  fitness_status varchar(40) [not null]
+  valid_from date [not null]
+  valid_until date
+  restrictions_summary text
+  issued_by_member_id uuid
+}
+
+Table health.exposure_links {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  health_profile_id uuid [not null]
+  source_record_id uuid [not null]
+  exposure_type varchar(100) [not null]
+  exposure_period_start date
+  exposure_period_end date
+}
+
+Table health.followups {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  surveillance_event_id uuid [not null]
+  followup_type varchar(60) [not null]
+  due_date date
+  status varchar(30) [not null]
+  assigned_member_id uuid
+}
+
+
+// ============================================================
+// CHEMICAL
+// ============================================================
+
+Table chemical.products {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  product_code varchar(60)
+  product_name varchar(200) [not null]
+  supplier_name varchar(200)
+  hazard_classification_json jsonb
+  owner_member_id uuid
+  status varchar(20) [not null]
+}
+
+Table chemical.inventory {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  chemical_product_id uuid [not null]
+  location_id uuid [not null]
+  quantity decimal(18,4)
+  unit varchar(30)
+  storage_condition varchar(100)
+  expiry_date date
+}
+
+Table chemical.sds_revisions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  chemical_product_id uuid [not null]
+  revision_number varchar(50) [not null]
+  effective_date date
+  file_object_id uuid [not null]
+  language varchar(20)
+  status varchar(20) [not null]
+}
+
+Table chemical.storage_inspections {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  chemical_inventory_id uuid [not null]
+  inspected_by_member_id uuid [not null]
+  inspected_at timestamptz [not null]
+  result varchar(30) [not null]
+  next_review_date date
+}
+
+Table chemical.exposure_controls {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  chemical_product_id uuid [not null]
+  control_type varchar(60) [not null]
+  description text [not null]
+  source_record_id uuid
+}
+
+
+// ============================================================
+// ENVIRONMENT
+// ============================================================
+
+Table environment.parameters {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(200) [not null]
+  category varchar(60) [not null]
+  default_unit varchar(30)
+  status varchar(20) [not null]
+}
+
+Table environment.sources {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  site_id uuid [not null]
+  location_id uuid
+  source_type varchar(60) [not null]
+  name varchar(200) [not null]
+  permit_reference varchar(100)
+}
+
+Table environment.monitoring_records {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  environment_source_id uuid [not null]
+  period_start timestamptz
+  period_end timestamptz
+  performed_by_member_id uuid
+  status varchar(30) [not null]
+}
+
+Table environment.measurements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  monitoring_record_id uuid [not null]
+  parameter_id uuid [not null]
+  measured_at timestamptz [not null]
+  result_value decimal(24,8)
+  unit varchar(30)
+  limit_value decimal(24,8)
+  target_value decimal(24,8)
+  quality_flag varchar(30)
+  compliance_status varchar(30)
+}
+
+Table environment.waste_records {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  waste_type varchar(80) [not null]
+  is_hazardous boolean [not null]
+  quantity decimal(24,8)
+  unit varchar(30)
+  source_location_id uuid
+  handler_name varchar(200)
+  manifest_number varchar(100)
+  record_date date [not null]
+}
+
+Table environment.resource_usage {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  resource_type varchar(50) [not null]
+  site_id uuid [not null]
+  period_start date [not null]
+  period_end date [not null]
+  quantity decimal(24,8) [not null]
+  unit varchar(30) [not null]
+  source_reference varchar(100)
+}
+
+Table environment.targets {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  parameter_id uuid
+  site_id uuid
+  period_start date
+  period_end date
+  target_value decimal(24,8)
+  unit varchar(30)
+  owner_member_id uuid
+}
+
+
+// ============================================================
+// SUSTAINABILITY
+// ============================================================
+
+Table sustainability.indicator_definitions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(200) [not null]
+  boundary_definition text
+  default_unit varchar(30)
+  framework_reference varchar(150)
+  status varchar(20) [not null]
+}
+
+Table sustainability.factor_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  factor_code varchar(80) [not null]
+  version_number int [not null]
+  factor_value decimal(24,10) [not null]
+  unit varchar(60) [not null]
+  source_reference text
+  effective_from date
+  effective_to date
+}
+
+Table sustainability.measurements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  indicator_definition_id uuid [not null]
+  factor_version_id uuid
+  scope_code varchar(20)
+  period_start date [not null]
+  period_end date [not null]
+  actual_value decimal(24,8)
+  unit varchar(30)
+  calculation_json jsonb
+  owner_member_id uuid
+}
+
+Table sustainability.targets {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  indicator_definition_id uuid [not null]
+  site_id uuid
+  period_start date
+  period_end date
+  target_value decimal(24,8)
+  unit varchar(30)
+}
+
+
+// ============================================================
+// ASSET
+// ============================================================
+
+Table asset.assets {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  source_system varchar(60)
+  source_id varchar(100)
+  asset_code varchar(80) [not null]
+  asset_name varchar(200) [not null]
+  asset_type varchar(80)
+  site_id uuid [not null]
+  location_id uuid
+  is_safety_critical boolean [not null]
+  status varchar(30) [not null]
+}
+
+Table asset.safety_requirements {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  asset_id uuid [not null]
+  requirement_type varchar(60) [not null]
+  frequency_days int
+  competency_id uuid
+  status varchar(20) [not null]
+}
+
+Table asset.inspections {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  asset_id uuid [not null]
+  inspection_type varchar(60) [not null]
+  inspected_at timestamptz
+  inspected_by_person_id uuid
+  result varchar(30) [not null]
+  next_due_date date
+}
+
+Table asset.certificates {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  asset_id uuid [not null]
+  certificate_type varchar(60) [not null]
+  certificate_number varchar(100)
+  issue_date date
+  expiry_date date
+  result varchar(30)
+  file_object_id uuid
+}
+
+Table asset.defects {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  asset_id uuid [not null]
+  description text [not null]
+  severity varchar(30)
+  restriction_status varchar(30)
+  maintenance_reference varchar(100)
+  owner_member_id uuid
+}
+
+Table asset.operator_assignments {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  asset_id uuid [not null]
+  person_id uuid [not null]
+  assigned_from date
+  assigned_to date
+  eligibility_status varchar(30)
+}
+
+
+// ============================================================
+// EMERGENCY
+// ============================================================
+
+Table emergency.plans {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  code varchar(50) [not null]
+  name varchar(200) [not null]
+  site_id uuid [not null]
+  owner_member_id uuid [not null]
+  status varchar(30) [not null]
+}
+
+Table emergency.plan_revisions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  emergency_plan_id uuid [not null]
+  revision_number varchar(30) [not null]
+  effective_date date
+  file_object_id uuid
+  status varchar(20) [not null]
+}
+
+Table emergency.team_members {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  emergency_plan_id uuid [not null]
+  person_id uuid [not null]
+  emergency_role varchar(80) [not null]
+  valid_from date
+  valid_to date
+}
+
+Table emergency.equipment {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  site_id uuid [not null]
+  location_id uuid
+  equipment_type varchar(80) [not null]
+  asset_id uuid
+  inspection_due_date date
+  maintenance_due_date date
+  status varchar(30) [not null]
+}
+
+Table emergency.drills {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  emergency_plan_id uuid [not null]
+  scenario text [not null]
+  scheduled_at timestamptz
+  conducted_at timestamptz
+  result_summary text
+  coordinator_member_id uuid
+}
+
+Table emergency.drill_participants {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  emergency_drill_id uuid [not null]
+  person_id uuid [not null]
+  participant_role varchar(80)
+  attendance_status varchar(30)
+}
+
+Table emergency.drill_findings {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  record_id uuid [not null, unique]
+  emergency_drill_id uuid [not null]
+  description text [not null]
+  severity varchar(30)
+  owner_member_id uuid
+}
+
+
+// ============================================================
+// REPORTING
+// ============================================================
+
+Table reporting.kpi_definitions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(200) [not null]
+  description text
+  owner_member_id uuid [not null]
+  status varchar(20) [not null]
+}
+
+Table reporting.kpi_versions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  kpi_definition_id uuid [not null]
+  version_number int [not null]
+  formula_expression text [not null]
+  numerator_definition text
+  denominator_definition text
+  factor decimal(24,8)
+  period_rule varchar(60)
+  scope_rule_json jsonb
+  effective_from date
+  effective_to date
+}
+
+Table reporting.report_definitions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(200) [not null]
+  report_type varchar(40) [not null]
+  dataset_code varchar(80) [not null]
+  filter_schema_json jsonb
+  required_permission_id uuid
+}
+
+Table reporting.report_schedules {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  report_definition_id uuid [not null]
+  owner_member_id uuid [not null]
+  schedule_rule varchar(200) [not null]
+  delivery_configuration_json jsonb
+  status varchar(20) [not null]
+}
+
+Table reporting.report_executions {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  report_definition_id uuid [not null]
+  report_schedule_id uuid
+  requested_by_member_id uuid
+  filter_values_json jsonb
+  status varchar(30) [not null]
+  output_file_object_id uuid
+  started_at timestamptz
+  completed_at timestamptz
+}
+
+
+// ============================================================
+// INTEGRATION
+// ============================================================
+
+Table integration.interfaces {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  code varchar(60) [not null]
+  name varchar(200) [not null]
+  source_system varchar(100) [not null]
+  target_system varchar(100) [not null]
+  integration_method varchar(30) [not null]
+  authentication_type varchar(50)
+  owner_member_id uuid
+  status varchar(20) [not null]
+}
+
+Table integration.data_mappings {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  interface_id uuid [not null]
+  version_number int [not null]
+  source_schema_json jsonb
+  target_schema_json jsonb
+  mapping_rules_json jsonb
+  effective_from timestamptz
+}
+
+Table integration.runs {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  interface_id uuid [not null]
+  mapping_id uuid
+  correlation_id varchar(100)
+  started_at timestamptz [not null]
+  completed_at timestamptz
+  status varchar(30) [not null]
+  received_count bigint
+  success_count bigint
+  error_count bigint
+}
+
+Table integration.messages {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  integration_run_id uuid [not null]
+  external_key varchar(200)
+  payload_hash varchar(64)
+  processing_status varchar(30) [not null]
+  error_code varchar(80)
+  error_message text
+  retry_count int [not null]
+}
+
+Table integration.reconciliations {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  integration_run_id uuid [not null]
+  source_count bigint
+  target_count bigint
+  matched_count bigint
+  unmatched_count bigint
+  status varchar(30) [not null]
+  approved_by_member_id uuid
+}
+
+
+// REFERENCES
+Ref: saas.plan_versions.subscription_plan_id > saas.subscription_plans.id
+Ref: saas.tenant_subscriptions.tenant_id > saas.tenants.id
+Ref: saas.tenant_subscriptions.plan_version_id > saas.plan_versions.id
+Ref: saas.tenant_subscriptions.scheduled_plan_version_id > saas.plan_versions.id
+Ref: saas.tenant_storage_usage.tenant_id > saas.tenants.id
+Ref: saas.tenant_usage_periods.tenant_id > saas.tenants.id
+Ref: saas.tenant_usage_periods.tenant_subscription_id > saas.tenant_subscriptions.id
+Ref: saas.usage_events.tenant_id > saas.tenants.id
+Ref: saas.usage_events.usage_period_id > saas.tenant_usage_periods.id
+Ref: saas.upload_sessions.tenant_id > saas.tenants.id
+Ref: saas.upload_sessions.usage_period_id > saas.tenant_usage_periods.id
+Ref: saas.upload_sessions.requested_by_user_id > iam.users.id
+Ref: org.companies.tenant_id > saas.tenants.id
+Ref: org.business_units.tenant_id > saas.tenants.id
+Ref: org.business_units.company_id > org.companies.id
+Ref: org.business_units.parent_business_unit_id > org.business_units.id
+Ref: org.sites.tenant_id > saas.tenants.id
+Ref: org.sites.company_id > org.companies.id
+Ref: org.sites.business_unit_id > org.business_units.id
+Ref: org.departments.tenant_id > saas.tenants.id
+Ref: org.departments.business_unit_id > org.business_units.id
+Ref: org.departments.site_id > org.sites.id
+Ref: org.departments.parent_department_id > org.departments.id
+Ref: org.locations.tenant_id > saas.tenants.id
+Ref: org.locations.site_id > org.sites.id
+Ref: org.locations.parent_location_id > org.locations.id
+Ref: org.positions.tenant_id > saas.tenants.id
+Ref: org.people.tenant_id > saas.tenants.id
+Ref: org.people.data_classification_id > platform.data_classifications.id
+Ref: org.employees.tenant_id > saas.tenants.id
+Ref: org.employees.person_id > org.people.id
+Ref: org.employees.company_id > org.companies.id
+Ref: org.employees.department_id > org.departments.id
+Ref: org.employees.position_id > org.positions.id
+Ref: org.employees.manager_person_id > org.people.id
+Ref: iam.tenant_members.tenant_id > saas.tenants.id
+Ref: iam.tenant_members.user_id > iam.users.id
+Ref: iam.tenant_members.person_id > org.people.id
+Ref: iam.roles.tenant_id > saas.tenants.id
+Ref: iam.permissions.tenant_id > saas.tenants.id
+Ref: iam.role_permissions.tenant_id > saas.tenants.id
+Ref: iam.role_permissions.role_id > iam.roles.id
+Ref: iam.role_permissions.permission_id > iam.permissions.id
+Ref: iam.member_roles.tenant_id > saas.tenants.id
+Ref: iam.member_roles.tenant_member_id > iam.tenant_members.id
+Ref: iam.member_roles.role_id > iam.roles.id
+Ref: iam.access_scopes.tenant_id > saas.tenants.id
+Ref: iam.access_scopes.company_id > org.companies.id
+Ref: iam.access_scopes.business_unit_id > org.business_units.id
+Ref: iam.access_scopes.site_id > org.sites.id
+Ref: iam.access_scopes.department_id > org.departments.id
+Ref: iam.access_scopes.location_id > org.locations.id
+Ref: iam.access_scopes.contractor_company_id > contractor.companies.id
+Ref: iam.access_scopes.data_classification_id > platform.data_classifications.id
+Ref: iam.member_access_scopes.tenant_id > saas.tenants.id
+Ref: iam.member_access_scopes.tenant_member_id > iam.tenant_members.id
+Ref: iam.member_access_scopes.access_scope_id > iam.access_scopes.id
+Ref: iam.temporary_access_grants.tenant_id > saas.tenants.id
+Ref: iam.temporary_access_grants.tenant_member_id > iam.tenant_members.id
+Ref: iam.temporary_access_grants.access_scope_id > iam.access_scopes.id
+Ref: iam.temporary_access_grants.role_id > iam.roles.id
+Ref: iam.temporary_access_grants.approved_by_member_id > iam.tenant_members.id
+Ref: iam.access_reviews.tenant_id > saas.tenants.id
+Ref: iam.access_reviews.reviewer_member_id > iam.tenant_members.id
+Ref: iam.refresh_tokens.user_id > iam.users.id
+Ref: iam.refresh_tokens.replaced_by_token_id > iam.refresh_tokens.id
+Ref: platform.data_classifications.tenant_id > saas.tenants.id
+Ref: platform.retention_policies.tenant_id > saas.tenants.id
+Ref: platform.retention_policies.classification_id > platform.data_classifications.id
+Ref: platform.records.tenant_id > saas.tenants.id
+Ref: platform.records.company_id > org.companies.id
+Ref: platform.records.business_unit_id > org.business_units.id
+Ref: platform.records.site_id > org.sites.id
+Ref: platform.records.department_id > org.departments.id
+Ref: platform.records.location_id > org.locations.id
+Ref: platform.records.data_classification_id > platform.data_classifications.id
+Ref: platform.records.created_by_member_id > iam.tenant_members.id
+Ref: platform.record_links.tenant_id > saas.tenants.id
+Ref: platform.record_links.source_record_id > platform.records.id
+Ref: platform.record_links.target_record_id > platform.records.id
+Ref: platform.record_links.created_by_member_id > iam.tenant_members.id
+Ref: platform.workflow_definitions.tenant_id > saas.tenants.id
+Ref: platform.workflow_versions.tenant_id > saas.tenants.id
+Ref: platform.workflow_versions.workflow_definition_id > platform.workflow_definitions.id
+Ref: platform.workflow_states.tenant_id > saas.tenants.id
+Ref: platform.workflow_states.workflow_version_id > platform.workflow_versions.id
+Ref: platform.workflow_transitions.tenant_id > saas.tenants.id
+Ref: platform.workflow_transitions.workflow_version_id > platform.workflow_versions.id
+Ref: platform.workflow_transitions.from_state_id > platform.workflow_states.id
+Ref: platform.workflow_transitions.to_state_id > platform.workflow_states.id
+Ref: platform.workflow_transitions.required_permission_id > iam.permissions.id
+Ref: platform.workflow_instances.tenant_id > saas.tenants.id
+Ref: platform.workflow_instances.record_id > platform.records.id
+Ref: platform.workflow_instances.workflow_version_id > platform.workflow_versions.id
+Ref: platform.workflow_instances.current_state_id > platform.workflow_states.id
+Ref: platform.workflow_tasks.tenant_id > saas.tenants.id
+Ref: platform.workflow_tasks.workflow_instance_id > platform.workflow_instances.id
+Ref: platform.workflow_tasks.assigned_member_id > iam.tenant_members.id
+Ref: platform.workflow_tasks.assigned_role_id > iam.roles.id
+Ref: platform.workflow_decisions.tenant_id > saas.tenants.id
+Ref: platform.workflow_decisions.workflow_task_id > platform.workflow_tasks.id
+Ref: platform.workflow_decisions.transition_id > platform.workflow_transitions.id
+Ref: platform.workflow_decisions.decided_by_member_id > iam.tenant_members.id
+Ref: platform.escalation_rules.tenant_id > saas.tenants.id
+Ref: platform.escalation_rules.workflow_version_id > platform.workflow_versions.id
+Ref: platform.file_objects.tenant_id > saas.tenants.id
+Ref: platform.file_objects.upload_session_id > saas.upload_sessions.id
+Ref: platform.file_objects.uploaded_by_user_id > iam.users.id
+Ref: platform.evidence_links.tenant_id > saas.tenants.id
+Ref: platform.evidence_links.record_id > platform.records.id
+Ref: platform.evidence_links.file_object_id > platform.file_objects.id
+Ref: platform.evidence_links.document_revision_id > document.revisions.id
+Ref: platform.evidence_links.linked_by_member_id > iam.tenant_members.id
+Ref: platform.notifications.tenant_id > saas.tenants.id
+Ref: platform.notifications.recipient_member_id > iam.tenant_members.id
+Ref: platform.notifications.record_id > platform.records.id
+Ref: platform.audit_logs.tenant_id > saas.tenants.id
+Ref: platform.audit_logs.record_id > platform.records.id
+Ref: platform.audit_logs.user_id > iam.users.id
+Ref: platform.audit_logs.tenant_member_id > iam.tenant_members.id
+Ref: platform.outbox_messages.tenant_id > saas.tenants.id
+Ref: platform.outbox_messages.record_id > platform.records.id
+Ref: platform.number_sequences.tenant_id > saas.tenants.id
+Ref: platform.lookup_values.tenant_id > saas.tenants.id
+Ref: document.controlled_documents.tenant_id > saas.tenants.id
+Ref: document.controlled_documents.record_id > platform.records.id
+Ref: document.controlled_documents.owner_member_id > iam.tenant_members.id
+Ref: document.revisions.tenant_id > saas.tenants.id
+Ref: document.revisions.controlled_document_id > document.controlled_documents.id
+Ref: document.revisions.file_object_id > platform.file_objects.id
+Ref: document.revisions.approved_by_member_id > iam.tenant_members.id
+Ref: document.acknowledgements.tenant_id > saas.tenants.id
+Ref: document.acknowledgements.document_revision_id > document.revisions.id
+Ref: document.acknowledgements.tenant_member_id > iam.tenant_members.id
+Ref: safety.observations.tenant_id > saas.tenants.id
+Ref: safety.observations.record_id > platform.records.id
+Ref: safety.observations.reporter_member_id > iam.tenant_members.id
+Ref: safety.observations.assigned_member_id > iam.tenant_members.id
+Ref: risk.hazards.tenant_id > saas.tenants.id
+Ref: risk.hazards.category_id > platform.lookup_values.id
+Ref: risk.matrix_versions.tenant_id > saas.tenants.id
+Ref: risk.matrix_cells.tenant_id > saas.tenants.id
+Ref: risk.matrix_cells.matrix_version_id > risk.matrix_versions.id
+Ref: risk.registers.tenant_id > saas.tenants.id
+Ref: risk.registers.record_id > platform.records.id
+Ref: risk.registers.hazard_id > risk.hazards.id
+Ref: risk.registers.owner_member_id > iam.tenant_members.id
+Ref: risk.assessments.tenant_id > saas.tenants.id
+Ref: risk.assessments.risk_register_id > risk.registers.id
+Ref: risk.assessments.matrix_version_id > risk.matrix_versions.id
+Ref: risk.assessments.assessed_by_member_id > iam.tenant_members.id
+Ref: risk.controls.tenant_id > saas.tenants.id
+Ref: risk.controls.risk_register_id > risk.registers.id
+Ref: risk.controls.owner_member_id > iam.tenant_members.id
+Ref: risk.reviews.tenant_id > saas.tenants.id
+Ref: risk.reviews.risk_register_id > risk.registers.id
+Ref: risk.reviews.reviewed_by_member_id > iam.tenant_members.id
+Ref: incident.incidents.tenant_id > saas.tenants.id
+Ref: incident.incidents.record_id > platform.records.id
+Ref: incident.incidents.incident_type_id > platform.lookup_values.id
+Ref: incident.incidents.severity_id > platform.lookup_values.id
+Ref: incident.incidents.reported_by_member_id > iam.tenant_members.id
+Ref: incident.involved_people.tenant_id > saas.tenants.id
+Ref: incident.involved_people.incident_id > incident.incidents.id
+Ref: incident.involved_people.person_id > org.people.id
+Ref: incident.involved_people.injury_classification_id > platform.lookup_values.id
+Ref: incident.investigations.tenant_id > saas.tenants.id
+Ref: incident.investigations.incident_id > incident.incidents.id
+Ref: incident.investigations.lead_investigator_member_id > iam.tenant_members.id
+Ref: incident.investigation_team.tenant_id > saas.tenants.id
+Ref: incident.investigation_team.investigation_id > incident.investigations.id
+Ref: incident.investigation_team.tenant_member_id > iam.tenant_members.id
+Ref: incident.root_causes.tenant_id > saas.tenants.id
+Ref: incident.root_causes.investigation_id > incident.investigations.id
+Ref: incident.root_causes.category_id > platform.lookup_values.id
+Ref: incident.classification_reviews.tenant_id > saas.tenants.id
+Ref: incident.classification_reviews.incident_id > incident.incidents.id
+Ref: incident.classification_reviews.reviewer_member_id > iam.tenant_members.id
+Ref: capa.actions.tenant_id > saas.tenants.id
+Ref: capa.actions.record_id > platform.records.id
+Ref: capa.actions.owner_member_id > iam.tenant_members.id
+Ref: capa.sources.tenant_id > saas.tenants.id
+Ref: capa.sources.action_id > capa.actions.id
+Ref: capa.sources.source_record_id > platform.records.id
+Ref: capa.updates.tenant_id > saas.tenants.id
+Ref: capa.updates.action_id > capa.actions.id
+Ref: capa.updates.updated_by_member_id > iam.tenant_members.id
+Ref: capa.verifications.tenant_id > saas.tenants.id
+Ref: capa.verifications.action_id > capa.actions.id
+Ref: capa.verifications.verifier_member_id > iam.tenant_members.id
+Ref: cow.work_requests.tenant_id > saas.tenants.id
+Ref: cow.work_requests.record_id > platform.records.id
+Ref: cow.work_requests.requester_member_id > iam.tenant_members.id
+Ref: cow.work_requests.contractor_company_id > contractor.companies.id
+Ref: cow.jsa_templates.tenant_id > saas.tenants.id
+Ref: cow.jsa_templates.owner_member_id > iam.tenant_members.id
+Ref: cow.jsa_template_versions.tenant_id > saas.tenants.id
+Ref: cow.jsa_template_versions.jsa_template_id > cow.jsa_templates.id
+Ref: cow.jsa_template_versions.site_id > org.sites.id
+Ref: cow.jsa_template_steps.tenant_id > saas.tenants.id
+Ref: cow.jsa_template_steps.jsa_template_version_id > cow.jsa_template_versions.id
+Ref: cow.jsas.tenant_id > saas.tenants.id
+Ref: cow.jsas.record_id > platform.records.id
+Ref: cow.jsas.work_request_id > cow.work_requests.id
+Ref: cow.jsas.template_version_id > cow.jsa_template_versions.id
+Ref: cow.jsas.prepared_by_member_id > iam.tenant_members.id
+Ref: cow.jsa_steps.tenant_id > saas.tenants.id
+Ref: cow.jsa_steps.jsa_id > cow.jsas.id
+Ref: cow.jsa_step_hazards.tenant_id > saas.tenants.id
+Ref: cow.jsa_step_hazards.jsa_step_id > cow.jsa_steps.id
+Ref: cow.jsa_step_hazards.hazard_id > risk.hazards.id
+Ref: cow.jsa_step_hazards.responsible_member_id > iam.tenant_members.id
+Ref: cow.permit_types.tenant_id > saas.tenants.id
+Ref: cow.permit_type_versions.tenant_id > saas.tenants.id
+Ref: cow.permit_type_versions.permit_type_id > cow.permit_types.id
+Ref: cow.permit_checklist_items.tenant_id > saas.tenants.id
+Ref: cow.permit_checklist_items.permit_type_version_id > cow.permit_type_versions.id
+Ref: cow.permits.tenant_id > saas.tenants.id
+Ref: cow.permits.record_id > platform.records.id
+Ref: cow.permits.work_request_id > cow.work_requests.id
+Ref: cow.permits.jsa_id > cow.jsas.id
+Ref: cow.permits.permit_type_version_id > cow.permit_type_versions.id
+Ref: cow.permits.requester_member_id > iam.tenant_members.id
+Ref: cow.permits.executor_person_id > org.people.id
+Ref: cow.permits.contractor_company_id > contractor.companies.id
+Ref: cow.permit_workers.tenant_id > saas.tenants.id
+Ref: cow.permit_workers.permit_id > cow.permits.id
+Ref: cow.permit_workers.person_id > org.people.id
+Ref: cow.permit_checklist_responses.tenant_id > saas.tenants.id
+Ref: cow.permit_checklist_responses.permit_id > cow.permits.id
+Ref: cow.permit_checklist_responses.checklist_item_id > cow.permit_checklist_items.id
+Ref: cow.permit_checklist_responses.checked_by_member_id > iam.tenant_members.id
+Ref: cow.permit_approvals.tenant_id > saas.tenants.id
+Ref: cow.permit_approvals.permit_id > cow.permits.id
+Ref: cow.permit_approvals.workflow_task_id > platform.workflow_tasks.id
+Ref: cow.permit_approvals.approver_member_id > iam.tenant_members.id
+Ref: cow.gas_tests.tenant_id > saas.tenants.id
+Ref: cow.gas_tests.permit_id > cow.permits.id
+Ref: cow.gas_tests.tested_by_person_id > org.people.id
+Ref: cow.work_executions.tenant_id > saas.tenants.id
+Ref: cow.work_executions.permit_id > cow.permits.id
+Ref: cow.work_monitoring.tenant_id > saas.tenants.id
+Ref: cow.work_monitoring.work_execution_id > cow.work_executions.id
+Ref: cow.work_monitoring.monitored_by_member_id > iam.tenant_members.id
+Ref: cow.isolation_plans.tenant_id > saas.tenants.id
+Ref: cow.isolation_plans.record_id > platform.records.id
+Ref: cow.isolation_plans.permit_id > cow.permits.id
+Ref: cow.isolation_plans.prepared_by_member_id > iam.tenant_members.id
+Ref: cow.isolation_points.tenant_id > saas.tenants.id
+Ref: cow.isolation_points.isolation_plan_id > cow.isolation_plans.id
+Ref: cow.isolation_points.asset_id > asset.assets.id
+Ref: cow.isolation_locks.tenant_id > saas.tenants.id
+Ref: cow.isolation_locks.isolation_point_id > cow.isolation_points.id
+Ref: cow.isolation_locks.applied_by_person_id > org.people.id
+Ref: cow.isolation_locks.removed_by_person_id > org.people.id
+Ref: cow.isolation_verifications.tenant_id > saas.tenants.id
+Ref: cow.isolation_verifications.isolation_point_id > cow.isolation_points.id
+Ref: cow.isolation_verifications.verified_by_person_id > org.people.id
+Ref: inspection.templates.tenant_id > saas.tenants.id
+Ref: inspection.templates.owner_member_id > iam.tenant_members.id
+Ref: inspection.template_versions.tenant_id > saas.tenants.id
+Ref: inspection.template_versions.template_id > inspection.templates.id
+Ref: inspection.template_sections.tenant_id > saas.tenants.id
+Ref: inspection.template_sections.template_version_id > inspection.template_versions.id
+Ref: inspection.template_items.tenant_id > saas.tenants.id
+Ref: inspection.template_items.section_id > inspection.template_sections.id
+Ref: inspection.schedules.tenant_id > saas.tenants.id
+Ref: inspection.schedules.template_version_id > inspection.template_versions.id
+Ref: inspection.schedules.site_id > org.sites.id
+Ref: inspection.schedules.location_id > org.locations.id
+Ref: inspection.schedules.assigned_member_id > iam.tenant_members.id
+Ref: inspection.inspections.tenant_id > saas.tenants.id
+Ref: inspection.inspections.record_id > platform.records.id
+Ref: inspection.inspections.schedule_id > inspection.schedules.id
+Ref: inspection.inspections.template_version_id > inspection.template_versions.id
+Ref: inspection.inspections.inspector_member_id > iam.tenant_members.id
+Ref: inspection.responses.tenant_id > saas.tenants.id
+Ref: inspection.responses.inspection_id > inspection.inspections.id
+Ref: inspection.responses.template_item_id > inspection.template_items.id
+Ref: inspection.responses.answered_by_member_id > iam.tenant_members.id
+Ref: inspection.findings.tenant_id > saas.tenants.id
+Ref: inspection.findings.record_id > platform.records.id
+Ref: inspection.findings.inspection_id > inspection.inspections.id
+Ref: inspection.findings.response_id > inspection.responses.id
+Ref: inspection.findings.severity_id > platform.lookup_values.id
+Ref: inspection.findings.owner_member_id > iam.tenant_members.id
+Ref: audit.programs.tenant_id > saas.tenants.id
+Ref: audit.programs.record_id > platform.records.id
+Ref: audit.programs.owner_member_id > iam.tenant_members.id
+Ref: audit.checklist_templates.tenant_id > saas.tenants.id
+Ref: audit.checklist_items.tenant_id > saas.tenants.id
+Ref: audit.checklist_items.checklist_template_id > audit.checklist_templates.id
+Ref: audit.audits.tenant_id > saas.tenants.id
+Ref: audit.audits.record_id > platform.records.id
+Ref: audit.audits.audit_program_id > audit.programs.id
+Ref: audit.audits.checklist_template_id > audit.checklist_templates.id
+Ref: audit.audits.lead_auditor_member_id > iam.tenant_members.id
+Ref: audit.team_members.tenant_id > saas.tenants.id
+Ref: audit.team_members.audit_id > audit.audits.id
+Ref: audit.team_members.tenant_member_id > iam.tenant_members.id
+Ref: audit.responses.tenant_id > saas.tenants.id
+Ref: audit.responses.audit_id > audit.audits.id
+Ref: audit.responses.checklist_item_id > audit.checklist_items.id
+Ref: audit.responses.auditor_member_id > iam.tenant_members.id
+Ref: audit.findings.tenant_id > saas.tenants.id
+Ref: audit.findings.record_id > platform.records.id
+Ref: audit.findings.audit_id > audit.audits.id
+Ref: audit.findings.audit_response_id > audit.responses.id
+Ref: audit.findings.owner_member_id > iam.tenant_members.id
+Ref: compliance.legal_sources.tenant_id > saas.tenants.id
+Ref: compliance.legal_source_versions.tenant_id > saas.tenants.id
+Ref: compliance.legal_source_versions.legal_source_id > compliance.legal_sources.id
+Ref: compliance.obligations.tenant_id > saas.tenants.id
+Ref: compliance.obligations.record_id > platform.records.id
+Ref: compliance.obligations.legal_source_version_id > compliance.legal_source_versions.id
+Ref: compliance.obligations.owner_member_id > iam.tenant_members.id
+Ref: compliance.obligation_applicability.tenant_id > saas.tenants.id
+Ref: compliance.obligation_applicability.obligation_id > compliance.obligations.id
+Ref: compliance.obligation_applicability.company_id > org.companies.id
+Ref: compliance.obligation_applicability.business_unit_id > org.business_units.id
+Ref: compliance.obligation_applicability.site_id > org.sites.id
+Ref: compliance.obligation_applicability.assessed_by_member_id > iam.tenant_members.id
+Ref: compliance.evaluations.tenant_id > saas.tenants.id
+Ref: compliance.evaluations.record_id > platform.records.id
+Ref: compliance.evaluations.obligation_id > compliance.obligations.id
+Ref: compliance.evaluations.evaluated_by_member_id > iam.tenant_members.id
+Ref: compliance.gaps.tenant_id > saas.tenants.id
+Ref: compliance.gaps.record_id > platform.records.id
+Ref: compliance.gaps.evaluation_id > compliance.evaluations.id
+Ref: compliance.gaps.owner_member_id > iam.tenant_members.id
+Ref: contractor.companies.tenant_id > saas.tenants.id
+Ref: contractor.companies.record_id > platform.records.id
+Ref: contractor.contracts.tenant_id > saas.tenants.id
+Ref: contractor.contracts.contractor_company_id > contractor.companies.id
+Ref: contractor.workers.tenant_id > saas.tenants.id
+Ref: contractor.workers.person_id > org.people.id
+Ref: contractor.workers.contractor_company_id > contractor.companies.id
+Ref: contractor.documents.tenant_id > saas.tenants.id
+Ref: contractor.documents.contractor_company_id > contractor.companies.id
+Ref: contractor.documents.contractor_worker_id > contractor.workers.id
+Ref: contractor.documents.file_object_id > platform.file_objects.id
+Ref: contractor.qualification_evaluations.tenant_id > saas.tenants.id
+Ref: contractor.qualification_evaluations.record_id > platform.records.id
+Ref: contractor.qualification_evaluations.contractor_company_id > contractor.companies.id
+Ref: contractor.qualification_evaluations.evaluated_by_member_id > iam.tenant_members.id
+Ref: contractor.performance_periods.tenant_id > saas.tenants.id
+Ref: contractor.performance_periods.contractor_company_id > contractor.companies.id
+Ref: training.courses.tenant_id > saas.tenants.id
+Ref: training.competencies.tenant_id > saas.tenants.id
+Ref: training.position_requirements.tenant_id > saas.tenants.id
+Ref: training.position_requirements.position_id > org.positions.id
+Ref: training.position_requirements.competency_id > training.competencies.id
+Ref: training.position_requirements.course_id > training.courses.id
+Ref: training.sessions.tenant_id > saas.tenants.id
+Ref: training.sessions.record_id > platform.records.id
+Ref: training.sessions.course_id > training.courses.id
+Ref: training.session_participants.tenant_id > saas.tenants.id
+Ref: training.session_participants.training_session_id > training.sessions.id
+Ref: training.session_participants.person_id > org.people.id
+Ref: training.worker_competencies.tenant_id > saas.tenants.id
+Ref: training.worker_competencies.person_id > org.people.id
+Ref: training.worker_competencies.competency_id > training.competencies.id
+Ref: training.certifications.tenant_id > saas.tenants.id
+Ref: training.certifications.record_id > platform.records.id
+Ref: training.certifications.person_id > org.people.id
+Ref: training.certifications.course_id > training.courses.id
+Ref: training.certifications.file_object_id > platform.file_objects.id
+Ref: training.eligibility_checks.tenant_id > saas.tenants.id
+Ref: training.eligibility_checks.record_id > platform.records.id
+Ref: training.eligibility_checks.person_id > org.people.id
+Ref: training.eligibility_checks.target_record_id > platform.records.id
+Ref: training.eligibility_overrides.tenant_id > saas.tenants.id
+Ref: training.eligibility_overrides.eligibility_check_id > training.eligibility_checks.id
+Ref: training.eligibility_overrides.approved_by_member_id > iam.tenant_members.id
+Ref: ppe.catalog.tenant_id > saas.tenants.id
+Ref: ppe.inventory.tenant_id > saas.tenants.id
+Ref: ppe.inventory.ppe_catalog_id > ppe.catalog.id
+Ref: ppe.inventory.site_id > org.sites.id
+Ref: ppe.requirements.tenant_id > saas.tenants.id
+Ref: ppe.requirements.ppe_catalog_id > ppe.catalog.id
+Ref: ppe.requirements.source_record_id > platform.records.id
+Ref: ppe.requirements.permit_type_id > cow.permit_types.id
+Ref: ppe.assignments.tenant_id > saas.tenants.id
+Ref: ppe.assignments.ppe_inventory_id > ppe.inventory.id
+Ref: ppe.assignments.person_id > org.people.id
+Ref: ppe.assignments.issued_by_member_id > iam.tenant_members.id
+Ref: ppe.inspections.tenant_id > saas.tenants.id
+Ref: ppe.inspections.ppe_inventory_id > ppe.inventory.id
+Ref: ppe.inspections.inspected_by_member_id > iam.tenant_members.id
+Ref: ppe.replacements.tenant_id > saas.tenants.id
+Ref: ppe.replacements.ppe_assignment_id > ppe.assignments.id
+Ref: health.profiles.tenant_id > saas.tenants.id
+Ref: health.profiles.person_id > org.people.id
+Ref: health.profiles.data_classification_id > platform.data_classifications.id
+Ref: health.surveillance_programs.tenant_id > saas.tenants.id
+Ref: health.surveillance_events.tenant_id > saas.tenants.id
+Ref: health.surveillance_events.record_id > platform.records.id
+Ref: health.surveillance_events.health_profile_id > health.profiles.id
+Ref: health.surveillance_events.surveillance_program_id > health.surveillance_programs.id
+Ref: health.fitness_statuses.tenant_id > saas.tenants.id
+Ref: health.fitness_statuses.health_profile_id > health.profiles.id
+Ref: health.fitness_statuses.issued_by_member_id > iam.tenant_members.id
+Ref: health.exposure_links.tenant_id > saas.tenants.id
+Ref: health.exposure_links.health_profile_id > health.profiles.id
+Ref: health.exposure_links.source_record_id > platform.records.id
+Ref: health.followups.tenant_id > saas.tenants.id
+Ref: health.followups.surveillance_event_id > health.surveillance_events.id
+Ref: health.followups.assigned_member_id > iam.tenant_members.id
+Ref: chemical.products.tenant_id > saas.tenants.id
+Ref: chemical.products.record_id > platform.records.id
+Ref: chemical.products.owner_member_id > iam.tenant_members.id
+Ref: chemical.inventory.tenant_id > saas.tenants.id
+Ref: chemical.inventory.chemical_product_id > chemical.products.id
+Ref: chemical.inventory.location_id > org.locations.id
+Ref: chemical.sds_revisions.tenant_id > saas.tenants.id
+Ref: chemical.sds_revisions.chemical_product_id > chemical.products.id
+Ref: chemical.sds_revisions.file_object_id > platform.file_objects.id
+Ref: chemical.storage_inspections.tenant_id > saas.tenants.id
+Ref: chemical.storage_inspections.record_id > platform.records.id
+Ref: chemical.storage_inspections.chemical_inventory_id > chemical.inventory.id
+Ref: chemical.storage_inspections.inspected_by_member_id > iam.tenant_members.id
+Ref: chemical.exposure_controls.tenant_id > saas.tenants.id
+Ref: chemical.exposure_controls.chemical_product_id > chemical.products.id
+Ref: chemical.exposure_controls.source_record_id > platform.records.id
+Ref: environment.parameters.tenant_id > saas.tenants.id
+Ref: environment.sources.tenant_id > saas.tenants.id
+Ref: environment.sources.site_id > org.sites.id
+Ref: environment.sources.location_id > org.locations.id
+Ref: environment.monitoring_records.tenant_id > saas.tenants.id
+Ref: environment.monitoring_records.record_id > platform.records.id
+Ref: environment.monitoring_records.environment_source_id > environment.sources.id
+Ref: environment.monitoring_records.performed_by_member_id > iam.tenant_members.id
+Ref: environment.measurements.tenant_id > saas.tenants.id
+Ref: environment.measurements.monitoring_record_id > environment.monitoring_records.id
+Ref: environment.measurements.parameter_id > environment.parameters.id
+Ref: environment.waste_records.tenant_id > saas.tenants.id
+Ref: environment.waste_records.record_id > platform.records.id
+Ref: environment.waste_records.source_location_id > org.locations.id
+Ref: environment.resource_usage.tenant_id > saas.tenants.id
+Ref: environment.resource_usage.record_id > platform.records.id
+Ref: environment.resource_usage.site_id > org.sites.id
+Ref: environment.targets.tenant_id > saas.tenants.id
+Ref: environment.targets.parameter_id > environment.parameters.id
+Ref: environment.targets.site_id > org.sites.id
+Ref: environment.targets.owner_member_id > iam.tenant_members.id
+Ref: sustainability.indicator_definitions.tenant_id > saas.tenants.id
+Ref: sustainability.factor_versions.tenant_id > saas.tenants.id
+Ref: sustainability.measurements.tenant_id > saas.tenants.id
+Ref: sustainability.measurements.record_id > platform.records.id
+Ref: sustainability.measurements.indicator_definition_id > sustainability.indicator_definitions.id
+Ref: sustainability.measurements.factor_version_id > sustainability.factor_versions.id
+Ref: sustainability.measurements.owner_member_id > iam.tenant_members.id
+Ref: sustainability.targets.tenant_id > saas.tenants.id
+Ref: sustainability.targets.indicator_definition_id > sustainability.indicator_definitions.id
+Ref: sustainability.targets.site_id > org.sites.id
+Ref: asset.assets.tenant_id > saas.tenants.id
+Ref: asset.assets.record_id > platform.records.id
+Ref: asset.assets.site_id > org.sites.id
+Ref: asset.assets.location_id > org.locations.id
+Ref: asset.safety_requirements.tenant_id > saas.tenants.id
+Ref: asset.safety_requirements.asset_id > asset.assets.id
+Ref: asset.safety_requirements.competency_id > training.competencies.id
+Ref: asset.inspections.tenant_id > saas.tenants.id
+Ref: asset.inspections.record_id > platform.records.id
+Ref: asset.inspections.asset_id > asset.assets.id
+Ref: asset.inspections.inspected_by_person_id > org.people.id
+Ref: asset.certificates.tenant_id > saas.tenants.id
+Ref: asset.certificates.record_id > platform.records.id
+Ref: asset.certificates.asset_id > asset.assets.id
+Ref: asset.certificates.file_object_id > platform.file_objects.id
+Ref: asset.defects.tenant_id > saas.tenants.id
+Ref: asset.defects.record_id > platform.records.id
+Ref: asset.defects.asset_id > asset.assets.id
+Ref: asset.defects.owner_member_id > iam.tenant_members.id
+Ref: asset.operator_assignments.tenant_id > saas.tenants.id
+Ref: asset.operator_assignments.asset_id > asset.assets.id
+Ref: asset.operator_assignments.person_id > org.people.id
+Ref: emergency.plans.tenant_id > saas.tenants.id
+Ref: emergency.plans.record_id > platform.records.id
+Ref: emergency.plans.site_id > org.sites.id
+Ref: emergency.plans.owner_member_id > iam.tenant_members.id
+Ref: emergency.plan_revisions.tenant_id > saas.tenants.id
+Ref: emergency.plan_revisions.emergency_plan_id > emergency.plans.id
+Ref: emergency.plan_revisions.file_object_id > platform.file_objects.id
+Ref: emergency.team_members.tenant_id > saas.tenants.id
+Ref: emergency.team_members.emergency_plan_id > emergency.plans.id
+Ref: emergency.team_members.person_id > org.people.id
+Ref: emergency.equipment.tenant_id > saas.tenants.id
+Ref: emergency.equipment.site_id > org.sites.id
+Ref: emergency.equipment.location_id > org.locations.id
+Ref: emergency.equipment.asset_id > asset.assets.id
+Ref: emergency.drills.tenant_id > saas.tenants.id
+Ref: emergency.drills.record_id > platform.records.id
+Ref: emergency.drills.emergency_plan_id > emergency.plans.id
+Ref: emergency.drills.coordinator_member_id > iam.tenant_members.id
+Ref: emergency.drill_participants.tenant_id > saas.tenants.id
+Ref: emergency.drill_participants.emergency_drill_id > emergency.drills.id
+Ref: emergency.drill_participants.person_id > org.people.id
+Ref: emergency.drill_findings.tenant_id > saas.tenants.id
+Ref: emergency.drill_findings.record_id > platform.records.id
+Ref: emergency.drill_findings.emergency_drill_id > emergency.drills.id
+Ref: emergency.drill_findings.owner_member_id > iam.tenant_members.id
+Ref: reporting.kpi_definitions.tenant_id > saas.tenants.id
+Ref: reporting.kpi_definitions.owner_member_id > iam.tenant_members.id
+Ref: reporting.kpi_versions.tenant_id > saas.tenants.id
+Ref: reporting.kpi_versions.kpi_definition_id > reporting.kpi_definitions.id
+Ref: reporting.report_definitions.tenant_id > saas.tenants.id
+Ref: reporting.report_definitions.required_permission_id > iam.permissions.id
+Ref: reporting.report_schedules.tenant_id > saas.tenants.id
+Ref: reporting.report_schedules.report_definition_id > reporting.report_definitions.id
+Ref: reporting.report_schedules.owner_member_id > iam.tenant_members.id
+Ref: reporting.report_executions.tenant_id > saas.tenants.id
+Ref: reporting.report_executions.report_definition_id > reporting.report_definitions.id
+Ref: reporting.report_executions.report_schedule_id > reporting.report_schedules.id
+Ref: reporting.report_executions.requested_by_member_id > iam.tenant_members.id
+Ref: reporting.report_executions.output_file_object_id > platform.file_objects.id
+Ref: integration.interfaces.tenant_id > saas.tenants.id
+Ref: integration.interfaces.owner_member_id > iam.tenant_members.id
+Ref: integration.data_mappings.tenant_id > saas.tenants.id
+Ref: integration.data_mappings.interface_id > integration.interfaces.id
+Ref: integration.runs.tenant_id > saas.tenants.id
+Ref: integration.runs.interface_id > integration.interfaces.id
+Ref: integration.runs.mapping_id > integration.data_mappings.id
+Ref: integration.messages.tenant_id > saas.tenants.id
+Ref: integration.messages.integration_run_id > integration.runs.id
+Ref: integration.reconciliations.tenant_id > saas.tenants.id
+Ref: integration.reconciliations.integration_run_id > integration.runs.id
+Ref: integration.reconciliations.approved_by_member_id > iam.tenant_members.id
