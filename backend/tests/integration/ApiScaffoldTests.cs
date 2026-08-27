@@ -12,14 +12,14 @@ public sealed class ApiScaffoldTests : IClassFixture<WebApplicationFactory<Progr
     public ApiScaffoldTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();
 
     [Fact]
-    public async Task Architecture_info_is_stable_non_business_metadata()
+    public async Task Architecture_info_reflects_wired_modular_monolith()
     {
         var response = await _client.GetAsync("/api/v1/architecture/info");
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadFromJsonAsync<ArchitectureInfo>();
         Assert.Equal("ENABLON EHSMS", payload?.Name);
-        Assert.Equal("architecture-scaffold", payload?.Capability);
-        Assert.False(payload?.BusinessFeaturesImplemented);
+        Assert.Equal("modular-monolith", payload?.Capability);
+        Assert.True(payload is { BusinessFeaturesImplemented: true, Persistence.Database: "postgresql" });
         Assert.Equal("not-configured", payload?.Authentication);
     }
 
@@ -65,5 +65,8 @@ public sealed class ApiScaffoldTests : IClassFixture<WebApplicationFactory<Progr
         string Name,
         string Capability,
         bool BusinessFeaturesImplemented,
-        string Authentication);
+        string Authentication,
+        PersistenceInfo? Persistence);
+
+    private sealed record PersistenceInfo(string Database, string[] Modules);
 }
