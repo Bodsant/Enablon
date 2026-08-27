@@ -1,1 +1,16 @@
-﻿<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Domain/Ehsms.Modules.Identity.Domain.csproj" /><ProjectReference Include="../Application/Ehsms.Modules.Identity.Application.csproj" /><ProjectReference Include="../Contracts/Ehsms.Modules.Identity.Contracts.csproj" /><ProjectReference Include="../../../BuildingBlocks/Ehsms.BuildingBlocks.csproj" /></ItemGroup></Project>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Domain/Ehsms.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="../Application/Ehsms.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="../Contracts/Ehsms.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/Ehsms.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>
