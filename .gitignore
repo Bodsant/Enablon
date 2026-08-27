@@ -1,0 +1,25 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+*.user
+
+# Dependencies and generated output
+node_modules/
+**/node_modules/
+**/bin/
+**/obj/
+dist/
+coverage/
+.angular/
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.suo
+*.userosscache

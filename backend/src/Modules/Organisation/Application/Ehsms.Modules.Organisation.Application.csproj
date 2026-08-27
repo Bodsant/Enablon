@@ -1,0 +1,1 @@
+﻿<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Domain/Ehsms.Modules.Organisation.Domain.csproj" /><ProjectReference Include="../Contracts/Ehsms.Modules.Organisation.Contracts.csproj" /><ProjectReference Include="../../../BuildingBlocks/Ehsms.BuildingBlocks.csproj" /></ItemGroup></Project>

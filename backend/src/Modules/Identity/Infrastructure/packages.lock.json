@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0": {
+      "ehsms.buildingblocks": {
+        "type": "Project"
+      },
+      "ehsms.modules.identity.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Identity.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.Identity.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.identity.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.identity.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

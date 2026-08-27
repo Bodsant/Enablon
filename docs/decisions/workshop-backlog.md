@@ -1,0 +1,2 @@
+# Workshop decision backlog
+All entries are **WORKSHOP**, not finalized: WS-01 concurrency/rate/evidence/retention sizing; WS-02 availability/RPO/RTO/backup; WS-03 SSO/MFA/session/privileged access; WS-04 risk matrix; WS-05 incident taxonomy/gates; WS-06 inspection/audit governance; WS-07 PTW/LOTO rules; WS-08 retention/legal hold; WS-09 KPI formula/timezone; WS-10 integration ownership/contracts; WS-11 commercial hierarchy limits; WS-12 production provider/cost ceiling. Owners and milestone due dates remain those in TDD v1.0.
