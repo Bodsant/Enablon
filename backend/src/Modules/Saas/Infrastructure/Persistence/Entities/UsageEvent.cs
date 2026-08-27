@@ -4,9 +4,11 @@ public sealed class UsageEvent
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
-    public Guid TenantUsagePeriodId { get; set; }
-    public Guid? UploadSessionId { get; set; }
+    public Guid? UsagePeriodId { get; set; }
     public string EventType { get; set; } = null!;
-    public long Bytes { get; set; }
+    public Guid? ReferenceId { get; set; }
+    public long StorageBytesDelta { get; set; }
+    public long UploadBytesDelta { get; set; }
+    public string? MetadataJson { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
 }

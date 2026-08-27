@@ -1,25 +1,12 @@
 using Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 using Ehsms.Modules.Identity.Infrastructure.Persistence.EntityConfigurations;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace Ehsms.Modules.Identity.Infrastructure.Persistence;
 
-/// <summary>
-/// EF Core <see cref="DbContext"/> for the Identity module. Backed by PostgreSQL, schema <c>iam</c>.
-/// ASP.NET Core Identity types (<see cref="Microsoft.AspNetCore.Identity.IdentityUser{TKey}"/> and friends)
-/// are mapped to the <c>iam.users</c> table via <see cref="UserEntity"/> and custom entity configurations.
-/// </summary>
-public sealed class EhsmsIdentityDbContext
-    : IdentityDbContext<
-        UserEntity,
-        RoleEntity,
-        Guid,
-        IdentityUserClaim<Guid>,
-        IdentityUserRole<Guid>,
-        IdentityUserLogin<Guid>,
-        IdentityRoleClaim<Guid>,
-        IdentityUserToken<Guid>>
+/// <summary>EF Core context for the custom IAM tables defined by the EHSMS DBML.</summary>
+public sealed class EhsmsIdentityDbContext : DbContext
 {
     private readonly string _schema;
 
@@ -29,6 +16,8 @@ public sealed class EhsmsIdentityDbContext
         _schema = schema.Schema;
     }
 
+    public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<RoleEntity> Roles => Set<RoleEntity>();
     public DbSet<TenantMemberEntity> TenantMembers => Set<TenantMemberEntity>();
     public DbSet<PermissionEntity> Permissions => Set<PermissionEntity>();
     public DbSet<RolePermissionEntity> RolePermissions => Set<RolePermissionEntity>();
@@ -41,15 +30,26 @@ public sealed class EhsmsIdentityDbContext
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(builder);
-
         builder.ApplyConfigurationsFromAssembly(typeof(EhsmsIdentityDbContext).Assembly);
+        ApplySnakeCaseColumnNames(builder);
+        base.OnModelCreating(builder);
+    }
 
-        // ASP.NET Core Identity joins live in the iam schema like every other Identity table.
-        builder.Entity<IdentityUserRole<Guid>>().ToTable("user_roles", _schema);
-        builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins", _schema);
-        builder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims", _schema);
-        builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims", _schema);
-        builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens", _schema);
+    private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
+    {
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        foreach (var property in entity.GetProperties())
+            property.SetColumnName(ToSnakeCase(property.Name));
+    }
+
+    private static string ToSnakeCase(string name)
+    {
+        var result = new StringBuilder(name.Length + 8);
+        for (var i = 0; i < name.Length; i++)
+        {
+            if (char.IsUpper(name[i]) && i > 0) result.Append('_');
+            result.Append(char.ToLowerInvariant(name[i]));
+        }
+        return result.ToString();
     }
 }

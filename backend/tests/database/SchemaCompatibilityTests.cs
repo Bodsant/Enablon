@@ -1,79 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Text.RegularExpressions;
+using Ehsms.Modules.Identity.Infrastructure.Persistence;
+using Ehsms.Modules.Organisation.Infrastructure.Persistence;
+using Ehsms.Modules.Platform.Infrastructure.Persistence;
+using Ehsms.Modules.Saas.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
 namespace Ehsms.DatabaseTests;
 
 public sealed class SchemaCompatibilityTests
 {
-    // Read connection from env (set in local dev / CI), skip gracefully if absent
-    private static string? ConnectionString =>
-        Environment.GetEnvironmentVariable("NEON_DATABASE_URL")
-        ?? ReadEnvLocal();
-
-    private static string? ReadEnvLocal()
-    {
-        // Look for .env.local at repo root (two levels up from tests/database)
-        var candidate = Path.Combine(RepoRoot, ".env.local");
-        if (File.Exists(candidate))
-        {
-            var line = File.ReadAllLines(candidate)
-                .FirstOrDefault(l => l.StartsWith("NEON_DATABASE_URL=", StringComparison.Ordinal));
-            if (line is not null)
-                return line["NEON_DATABASE_URL=".Length..].Trim();
-        }
-        return null;
-    }
-
-    private static string RepoRoot
-    {
-        get
-        {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Ehsms.sln")) && !File.Exists(Path.Combine(dir.FullName, "global.json")))
-                dir = dir.Parent;
-            return dir?.FullName
-                ?? throw new DirectoryNotFoundException("Repo root not found from test bin.");
-        }
-    }
-
     [Fact]
-    public void Database_reachable_and_schema_matches_dbml_counts()
+    public void All_module_models_use_dbml_tables_schemas_and_columns()
     {
-        var cs = ConnectionString;
-        if (string.IsNullOrEmpty(cs))
-        {
-            // Not failing hard: DB-backed tests are opt-in via env
-            return;
-        }
-        using var conn = new NpgsqlConnection(cs);
-        conn.Open();
+        var expected = ReadDbmlTables();
+        using var platform = new PlatformDbContext(Options<PlatformDbContext>(), new TestPlatformSchema());
+        using var saas = new SaasDbContext(Options<SaasDbContext>());
+        using var organisation = new OrganisationDbContext(Options<OrganisationDbContext>());
+        using var identity = new EhsmsIdentityDbContext(Options<EhsmsIdentityDbContext>(), new TestIdentitySchema());
 
-        // Verify 175 tables exist
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT COUNT(*) FROM pg_tables
-            WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-            """;
-        var tableCount = Convert.ToInt32(cmd.ExecuteScalar());
-        Assert.Equal(175, tableCount);
+        AssertModelMatches(platform, expected);
+        AssertModelMatches(saas, expected);
+        AssertModelMatches(organisation, expected);
+        AssertModelMatches(identity, expected);
     }
 
-    [Fact]
-    public void DbContexts_can_build_models_without_errors()
-    {
-        // Instantiate each context with an in-memory-ish config just to validate model building.
-        // (Npgsql provider without connection only validates model mapping.)
-        var options = new DbContextOptionsBuilder()
-            .UseNpgsql("Host=localhost;Database=none;Username=none;Password=none")
+    private static DbContextOptions<T> Options<T>() where T : DbContext
+        => new DbContextOptionsBuilder<T>()
+            .UseNpgsql("Host=localhost;Database=metadata_only;Username=none;Password=none")
             .Options;
 
-        // We need to reference concrete contexts — they'll be produced by the EF specialists.
-        // This test compiles against the contexts we expect to exist.
-        _ = options; // placeholder until EF models land
-        Assert.True(true); // model-build smoke test will be filled in after entities exist
+    private static void AssertModelMatches(DbContext context, IReadOnlyDictionary<string, HashSet<string>> expected)
+    {
+        foreach (var entity in context.Model.GetEntityTypes().Where(e => e.GetTableName() is not null))
+        {
+            var key = $"{entity.GetSchema()}.{entity.GetTableName()}";
+            Assert.True(expected.ContainsKey(key), $"EF entity {entity.Name} maps to unexpected table {key}.");
+
+            var actualColumns = entity.GetProperties()
+                .Select(p => p.GetColumnName(StoreObjectIdentifier.Table(entity.GetTableName()!, entity.GetSchema())))
+                .Where(name => name is not null)
+                .Select(name => name!)
+                .ToHashSet(StringComparer.Ordinal);
+            Assert.True(expected[key].SetEquals(actualColumns),
+                $"Columns for {key} differ. Expected: {string.Join(",", expected[key])}; actual: {string.Join(",", actualColumns)}");
+        }
+    }
+
+    private static IReadOnlyDictionary<string, HashSet<string>> ReadDbmlTables()
+    {
+        var path = Path.Combine(Directory.GetParent(RepoRoot())!.FullName, "database", "ehsms-erd.dbml");
+        var text = File.ReadAllText(path);
+        return Regex.Matches(text, @"Table\s+(?<table>[\w]+\.[\w]+)\s*\{(?<body>.*?)\n\}", RegexOptions.Singleline)
+            .ToDictionary(
+                m => m.Groups["table"].Value,
+                m => Regex.Matches(m.Groups["body"].Value, @"^\s+(?<column>[a-z][a-z0-9_]*)\s", RegexOptions.Multiline)
+                    .Select(c => c.Groups["column"].Value).ToHashSet(StringComparer.Ordinal),
+                StringComparer.Ordinal);
+    }
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Ehsms.sln")))
+            dir = dir.Parent;
+        return dir?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");
+    }
+
+    private sealed class TestPlatformSchema : IPlatformDbSchema
+    {
+        public string Schema => "platform";
+    }
+
+    private sealed class TestIdentitySchema : IDbContextSchema
+    {
+        public string Schema => "iam";
     }
 }

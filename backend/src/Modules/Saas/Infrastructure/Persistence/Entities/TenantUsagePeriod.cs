@@ -7,6 +7,9 @@ public sealed class TenantUsagePeriod
     public Guid TenantSubscriptionId { get; set; }
     public DateTimeOffset PeriodStart { get; set; }
     public DateTimeOffset PeriodEnd { get; set; }
-    public long UploadBytesUsed { get; set; }
-    public int ActiveUsersPeak { get; set; }
+    public long UploadedBytes { get; set; }
+    public long ReservedUploadBytes { get; set; }
+    public long UploadCount { get; set; }
+    public string Status { get; set; } = null!;
+    public int LockVersion { get; set; }
 }
