@@ -62,7 +62,7 @@ app.MapGet("/api/v1/architecture/info", () => Results.Ok(new
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = check => check.Tags.Contains("live") });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
-    Predicate = check => check.Tags.Contains("ready"),
+    Predicate = check => check.Name == "process-readiness",
     ResponseWriter = async (context, report) =>
     {
         context.Response.ContentType = "application/json";

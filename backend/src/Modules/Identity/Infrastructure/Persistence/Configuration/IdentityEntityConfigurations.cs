@@ -42,7 +42,7 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
         builder.Property(e => e.DisplayName).HasMaxLength(200).IsRequired();
         builder.Property(e => e.Status).HasMaxLength(20).IsRequired();
-        builder.HasOne<UserEntity>().WithMany().HasForeignKey(e => e.UserId);
+        builder.HasOne(e => e.User).WithMany(e => e.TenantMembers).HasForeignKey(e => e.UserId);
         // person_id -> org.people (cross-schema, scalar)
     }
 
@@ -71,8 +71,8 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.ToTable("role_permissions", IamSchema);
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-        builder.HasOne<RoleEntity>().WithMany().HasForeignKey(e => e.RoleId);
-        builder.HasOne<PermissionEntity>().WithMany().HasForeignKey(e => e.PermissionId);
+        builder.HasOne(e => e.Role).WithMany(e => e.RolePermissions).HasForeignKey(e => e.RoleId);
+        builder.HasOne(e => e.Permission).WithMany(e => e.RolePermissions).HasForeignKey(e => e.PermissionId);
     }
 
     public void Configure(EntityTypeBuilder<MemberRoleEntity> builder)
@@ -80,8 +80,8 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.ToTable("member_roles", IamSchema);
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-        builder.HasOne<TenantMemberEntity>().WithMany().HasForeignKey(e => e.TenantMemberId);
-        builder.HasOne<RoleEntity>().WithMany().HasForeignKey(e => e.RoleId);
+        builder.HasOne(e => e.TenantMember).WithMany(e => e.MemberRoles).HasForeignKey(e => e.TenantMemberId);
+        builder.HasOne(e => e.Role).WithMany(e => e.MemberRoles).HasForeignKey(e => e.RoleId);
     }
 
     public void Configure(EntityTypeBuilder<AccessScopeEntity> builder)
@@ -98,8 +98,8 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.ToTable("member_access_scopes", IamSchema);
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-        builder.HasOne<TenantMemberEntity>().WithMany().HasForeignKey(e => e.TenantMemberId);
-        builder.HasOne<AccessScopeEntity>().WithMany().HasForeignKey(e => e.AccessScopeId);
+        builder.HasOne(e => e.TenantMember).WithMany(e => e.MemberAccessScopes).HasForeignKey(e => e.TenantMemberId);
+        builder.HasOne(e => e.AccessScope).WithMany(e => e.MemberAccessScopes).HasForeignKey(e => e.AccessScopeId);
     }
 
     public void Configure(EntityTypeBuilder<TemporaryAccessGrantEntity> builder)
@@ -108,10 +108,10 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
         builder.Property(e => e.Reason).IsRequired();
-        builder.HasOne<TenantMemberEntity>().WithMany().HasForeignKey(e => e.TenantMemberId);
-        builder.HasOne<AccessScopeEntity>().WithMany().HasForeignKey(e => e.AccessScopeId);
-        builder.HasOne<RoleEntity>().WithMany().HasForeignKey(e => e.RoleId);
-        builder.HasOne<TenantMemberEntity>().WithMany().HasForeignKey(e => e.ApprovedByMemberId);
+        builder.HasOne(e => e.TenantMember).WithMany(e => e.TemporaryAccessGrants).HasForeignKey(e => e.TenantMemberId);
+        builder.HasOne(e => e.AccessScope).WithMany(e => e.TemporaryAccessGrants).HasForeignKey(e => e.AccessScopeId);
+        builder.HasOne(e => e.Role).WithMany().HasForeignKey(e => e.RoleId);
+        builder.HasOne(e => e.ApprovedByMember).WithMany(e => e.ApprovedTemporaryAccessGrants).HasForeignKey(e => e.ApprovedByMemberId);
     }
 
     public void Configure(EntityTypeBuilder<AccessReviewEntity> builder)
@@ -120,7 +120,7 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
         builder.Property(e => e.Status).HasMaxLength(20).IsRequired();
-        builder.HasOne<TenantMemberEntity>().WithMany().HasForeignKey(e => e.ReviewerMemberId);
+        builder.HasOne(e => e.ReviewerMember).WithMany(e => e.ReviewedAccessReviews).HasForeignKey(e => e.ReviewerMemberId);
     }
 
     public void Configure(EntityTypeBuilder<RefreshTokenEntity> builder)
@@ -130,7 +130,7 @@ public sealed class IdentityEntityConfigurations : IEntityTypeConfiguration<User
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
         builder.Property(e => e.TokenHash).HasMaxLength(255).IsRequired();
         builder.HasIndex(e => e.TokenHash).IsUnique();
-        builder.HasOne<UserEntity>().WithMany().HasForeignKey(e => e.UserId);
-        builder.HasOne<RefreshTokenEntity>().WithMany().HasForeignKey(e => e.ReplacedByTokenId);
+        builder.HasOne(e => e.User).WithMany(e => e.RefreshTokens).HasForeignKey(e => e.UserId);
+        builder.HasOne(e => e.ReplacedByToken).WithMany(e => e.ReplacedTokens).HasForeignKey(e => e.ReplacedByTokenId);
     }
 }

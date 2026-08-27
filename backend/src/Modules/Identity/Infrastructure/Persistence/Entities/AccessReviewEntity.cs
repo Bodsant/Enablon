@@ -1,10 +1,6 @@
-using System;
-
 namespace Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 
-/// <summary>
-/// Maps iam.access_reviews (001-foundation.sql · Wave 1). Periodic access review record.
-/// </summary>
+/// <summary>Represents the <c>iam.access_reviews</c> table.</summary>
 public sealed class AccessReviewEntity
 {
     public Guid Id { get; set; }
@@ -12,6 +8,8 @@ public sealed class AccessReviewEntity
     public DateOnly ReviewPeriodStart { get; set; }
     public DateOnly ReviewPeriodEnd { get; set; }
     public Guid ReviewerMemberId { get; set; }
-    public string Status { get; set; } = default!;
+    public string Status { get; set; } = string.Empty;
     public DateTimeOffset? CompletedAt { get; set; }
+
+    public TenantMemberEntity? ReviewerMember { get; set; }
 }

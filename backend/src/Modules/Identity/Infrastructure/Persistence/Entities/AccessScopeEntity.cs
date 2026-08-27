@@ -1,16 +1,11 @@
-using System;
-
 namespace Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 
-/// <summary>
-/// Maps iam.access_scopes (001-foundation.sql · Wave 1). Scope of access within org hierarchy.
-/// Cross-schema ids are kept as scalar Guid properties.
-/// </summary>
+/// <summary>Represents the <c>iam.access_scopes</c> table. A tenant-bounded access scope over org/contractor entities.</summary>
 public sealed class AccessScopeEntity
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
-    public string ScopeType { get; set; } = default!;
+    public string ScopeType { get; set; } = string.Empty;
     public Guid? CompanyId { get; set; }
     public Guid? BusinessUnitId { get; set; }
     public Guid? SiteId { get; set; }
@@ -18,4 +13,7 @@ public sealed class AccessScopeEntity
     public Guid? LocationId { get; set; }
     public Guid? ContractorCompanyId { get; set; }
     public Guid? DataClassificationId { get; set; }
+
+    public ICollection<MemberAccessScopeEntity> MemberAccessScopes { get; set; } = new List<MemberAccessScopeEntity>();
+    public ICollection<TemporaryAccessGrantEntity> TemporaryAccessGrants { get; set; } = new List<TemporaryAccessGrantEntity>();
 }

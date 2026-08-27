@@ -1,16 +1,15 @@
-using System;
-
 namespace Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 
-/// <summary>
-/// Maps iam.roles (001-foundation.sql · Wave 1). A named role within a tenant.
-/// </summary>
+/// <summary>Represents the <c>iam.roles</c> table.</summary>
 public sealed class RoleEntity
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
-    public string Code { get; set; } = default!;
-    public string Name { get; set; } = default!;
-    public string ScopeType { get; set; } = default!;
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string ScopeType { get; set; } = string.Empty;
     public bool IsSystem { get; set; }
+
+    public ICollection<RolePermissionEntity> RolePermissions { get; set; } = new List<RolePermissionEntity>();
+    public ICollection<MemberRoleEntity> MemberRoles { get; set; } = new List<MemberRoleEntity>();
 }

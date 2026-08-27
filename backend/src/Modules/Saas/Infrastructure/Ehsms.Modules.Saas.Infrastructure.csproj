@@ -1,1 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Domain/Ehsms.Modules.Saas.Domain.csproj" /><ProjectReference Include="../Application/Ehsms.Modules.Saas.Application.csproj" /><ProjectReference Include="../Contracts/Ehsms.Modules.Saas.Contracts.csproj" /><ProjectReference Include="../../../BuildingBlocks/Ehsms.BuildingBlocks.csproj" /></ItemGroup></Project>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Ehsms.Modules.Saas.Domain.csproj" />
+    <ProjectReference Include="..\Application\Ehsms.Modules.Saas.Application.csproj" />
+    <ProjectReference Include="..\Contracts\Ehsms.Modules.Saas.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ehsms.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>
