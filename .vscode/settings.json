@@ -1,1 +1,5 @@
-{}
+{
+  "dotnet.defaultSolution": "backend/Ehsms.sln",
+  "dotnetAcquisitionExtension.enableTelemetry": false,
+  "omnisharp.useGlobalSDK": true
+}
