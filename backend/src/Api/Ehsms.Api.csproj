@@ -1,1 +1,1 @@
-<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup><ProjectReference Include="../BuildingBlocks/Ehsms.BuildingBlocks.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup><ProjectReference Include="../BuildingBlocks/Ehsms.BuildingBlocks.csproj" /><ProjectReference Include="../Modules/Organisation/Infrastructure/Ehsms.Modules.Organisation.Infrastructure.csproj" /><ProjectReference Include="../Modules/Identity/Infrastructure/Ehsms.Modules.Identity.Infrastructure.csproj" /></ItemGroup></Project>

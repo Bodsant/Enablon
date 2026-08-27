@@ -5,6 +5,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../src/Api/Ehsms.Api.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Api/Ehsms.Api.csproj" />
+    <ProjectReference Include="../../src/Modules/Organisation/Infrastructure/Ehsms.Modules.Organisation.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Modules/Identity/Infrastructure/Ehsms.Modules.Identity.Infrastructure.csproj" />
+  </ItemGroup>
 </Project>
