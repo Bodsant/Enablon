@@ -117,5 +117,32 @@ app.MapGet("/api/v1/saas/tenants/count", (Ehsms.Modules.Saas.Infrastructure.Pers
     return Results.Ok(new { tenantCount = db.Tenants.Count() });
 });
 
+// SaaS plans & versions: reads the seeded subscription catalog.
+app.MapGet("/api/v1/saas/plans", (Ehsms.Modules.Saas.Infrastructure.Persistence.SaasDbContext db) =>
+{
+    var plans = db.SubscriptionPlans
+        .Select(p => new
+        {
+            p.Code,
+            p.Name,
+            p.IsActive,
+            version = db.PlanVersions
+                .Where(v => v.SubscriptionPlanId == p.Id && v.IsCurrent)
+                .Select(v => new { v.VersionNumber, v.MaxActiveUsers, v.MaxStorageBytes })
+                .FirstOrDefault()
+        })
+        .OrderBy(p => p.Code)
+        .ToList();
+    return Results.Ok(plans);
+});
+
+// Development seed: subscription plans and their current versions (idempotent).
+if (app.Environment.IsDevelopment())
+{
+    using var seedScope = app.Services.CreateScope();
+    var seeder = seedScope.ServiceProvider.GetRequiredService<SaasDbSeeder>();
+    await seeder.SeedAsync();
+}
+
 app.Run();
 public partial class Program;

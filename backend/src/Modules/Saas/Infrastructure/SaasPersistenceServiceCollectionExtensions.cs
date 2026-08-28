@@ -28,6 +28,9 @@ public static class SaasPersistenceServiceCollectionExtensions
             services.AddScoped<ITenantContext, ScopedTenantContext>();
         }
 
+        // Idempotent development seed for subscription plans and versions.
+        services.AddScoped<SaasDbSeeder>();
+
         return services;
     }
 }
