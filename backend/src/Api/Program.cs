@@ -5,6 +5,7 @@ using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,8 +38,25 @@ builder.Services.AddHealthChecks()
         tags: ["live", "ready"])
     .AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"]);
 
+// OpenAPI/Swagger documentation for the API surface. Exposed in Development only.
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ENABLON EHSMS API",
+        Version = "v1",
+        Description = "REST API for the ENABLON EHSMS (Environmental, Health, Safety & Sustainability) platform — a modular monolith exposing health, architecture and business endpoints under /api/v1."
+    });
+});
+
 var app = builder.Build();
 app.UseExceptionHandler();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 app.Use(async (context, next) =>
 {
     const string header = "X-Correlation-ID";
