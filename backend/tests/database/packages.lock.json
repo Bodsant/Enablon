@@ -295,6 +295,7 @@
       "ehsms.modules.platform.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
           "Ehsms.BuildingBlocks": "[1.0.0, )",
           "Ehsms.Modules.Platform.Application": "[1.0.0, )",
           "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
@@ -322,6 +323,7 @@
       "ehsms.modules.saas.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
           "Ehsms.BuildingBlocks": "[1.0.0, )",
           "Ehsms.Modules.Saas.Application": "[1.0.0, )",
           "Ehsms.Modules.Saas.Contracts": "[1.0.0, )",

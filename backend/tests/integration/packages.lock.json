@@ -483,6 +483,8 @@
           "Ehsms.BuildingBlocks": "[1.0.0, )",
           "Ehsms.Modules.Identity.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.Organisation.Infrastructure": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Infrastructure": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Infrastructure": "[1.0.0, )",
           "Swashbuckle.AspNetCore": "[6.9.0, )"
         }
       },
@@ -545,6 +547,62 @@
           "Ehsms.Modules.Organisation.Application": "[1.0.0, )",
           "Ehsms.Modules.Organisation.Contracts": "[1.0.0, )",
           "Ehsms.Modules.Organisation.Domain": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
+        }
+      },
+      "ehsms.modules.platform.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.platform.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.platform.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.platform.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Application": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Domain": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
+        }
+      },
+      "ehsms.modules.saas.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.saas.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.saas.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.saas.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Application": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.Saas.Domain": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },
