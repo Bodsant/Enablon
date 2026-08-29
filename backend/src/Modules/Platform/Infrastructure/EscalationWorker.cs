@@ -1,3 +1,4 @@
+using Ehsms.Modules.Platform.Application;
 using Ehsms.Modules.Platform.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +26,6 @@ public sealed class EscalationWorker : BackgroundService
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(_interval);
@@ -63,6 +63,21 @@ public sealed class EscalationWorker : BackgroundService
                     AfterJson = System.Text.Json.JsonSerializer.Serialize(new { task.Id, task.Priority }),
                     OccurredAt = now,
                 });
+
+                // Escalation trigger -> notify the task's assignee (deduped by the service).
+                if (task.AssignedMemberId is not null)
+                {
+                    var notifications = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                    await notifications.CreateAsync(
+                        task.AssignedMemberId.Value,
+                        "task.escalated",
+                        "Task escalated",
+                        $"Workflow task {task.Id} is overdue and was escalated to Critical priority.",
+                        recordId: task.Instance?.RecordId,
+                        tenantId: task.TenantId,
+                        cancellationToken: cancellationToken);
+                }
+
                 _logger.LogInformation("Escalated overdue workflow task {TaskId}", task.Id);
                 changed = true;
             }

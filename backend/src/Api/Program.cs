@@ -361,6 +361,68 @@ app.MapGet("/api/v1/workflow/my-tasks", async (
     return Results.Ok(new { tasks });
 }).RequireAuthorization();
 
+// My Tasks & Notifications: member summary + notification inbox.
+app.MapGet("/api/v1/workflow/me", async (
+    ClaimsPrincipal user,
+    PlatformDbContext db,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { memberId = (Guid?)null, openTasks = 0, unreadNotifications = 0 });
+    }
+
+    var openTasks = await db.WorkflowTasks.CountAsync(
+        t => t.TenantId == tenantContext.CurrentTenantId && t.Status == "Open"
+            && (t.AssignedMemberId == null || t.AssignedMemberId == memberId), ct);
+    var unread = await db.Notifications.CountAsync(
+        n => n.TenantId == tenantContext.CurrentTenantId && n.RecipientMemberId == memberId && n.ReadAt == null, ct);
+    return Results.Ok(new { memberId, openTasks, unreadNotifications = unread });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/notifications", async (
+    ClaimsPrincipal user,
+    PlatformDbContext db,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Ok(new { notifications = new object[] { } });
+    }
+
+    var notifications = await db.Notifications
+        .Where(n => n.TenantId == tenantContext.CurrentTenantId && n.RecipientMemberId == memberId
+            && n.ReadAt == null)
+        .OrderByDescending(n => n.Id)
+        .Select(n => new { n.Id, n.NotificationType, n.Title, n.Message, n.DeliveryStatus, n.RecordId })
+        .Take(50)
+        .ToListAsync(ct);
+    return Results.Ok(new { notifications });
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/notifications/{id:guid}/read", async (
+    Guid id,
+    ClaimsPrincipal user,
+    INotificationService notifications,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null)
+    {
+        return Results.NotFound();
+    }
+    var ok = await notifications.MarkReadAsync(id, memberId.Value, tenantId: null, cancellationToken: ct);
+    return ok ? Results.Ok(new { read = true }) : Results.NotFound();
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {

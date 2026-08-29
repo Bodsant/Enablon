@@ -44,6 +44,9 @@ public static class PlatformPersistenceServiceCollectionExtensions
         services.AddScoped<WorkflowDbSeeder>();
         services.AddHostedService<EscalationWorker>();
 
+        // Notifications: deduplicated in-app notifications + outbox delivery.
+        services.AddScoped<INotificationService, NotificationService>();
+
         return services;
     }
 }
