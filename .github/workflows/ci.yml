@@ -10,6 +10,22 @@ jobs:
           if git ls-files | grep -E '(^|/)(node_modules|bin|obj)/|(^|/)\.env$'; then exit 1; fi
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ehsms_dev
+          POSTGRES_PASSWORD: ehsms
+          POSTGRES_DB: ehsms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ehsms_dev -d ehsms"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ConnectionStrings__EhSms: "Host=localhost;Port=5432;Database=ehsms;Username=ehsms_dev;Password=ehsms"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -17,6 +33,17 @@ jobs:
       - run: dotnet restore backend/Ehsms.sln --locked-mode
       - run: dotnet list backend/Ehsms.sln package --vulnerable --include-transitive
       - run: dotnet build backend/Ehsms.sln --no-restore --configuration Release
+      - name: Prepare Postgres schema
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          export PGPASSWORD=ehsms
+          # Apply schema DDL only (001-004). RLS scripts (005+) are intentionally skipped:
+          # they enforce app.current_tenant_id which the integration tests don't simulate,
+          # matching the local dev database where RLS is not active.
+          for f in database/ddl/001-foundation.sql database/ddl/002-core-ehs.sql database/ddl/003-operational.sql database/ddl/004-extended.sql; do
+            echo "Applying $f"
+            psql -h localhost -U ehsms_dev -d ehsms -v ON_ERROR_STOP=1 -q -f "$f"
+          done
       - run: dotnet test backend/Ehsms.sln --no-build --configuration Release
   frontend:
     runs-on: ubuntu-latest
