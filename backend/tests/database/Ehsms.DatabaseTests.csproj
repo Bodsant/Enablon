@@ -13,5 +13,10 @@
     <ProjectReference Include="../../src/Modules/Saas/Infrastructure/Ehsms.Modules.Saas.Infrastructure.csproj" />
     <ProjectReference Include="../../src/Modules/Organisation/Infrastructure/Ehsms.Modules.Organisation.Infrastructure.csproj" />
     <ProjectReference Include="../../src/Modules/Identity/Infrastructure/Ehsms.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Modules/SafetyRisk/Infrastructure/Ehsms.Modules.SafetyRisk.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Modules/WorkControl/Infrastructure/Ehsms.Modules.WorkControl.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Modules/ComplianceContracts/Infrastructure/Ehsms.Modules.ComplianceContracts.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Modules/HealthSafety/Infrastructure/Ehsms.Modules.HealthSafety.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Modules/AssetReporting/Infrastructure/Ehsms.Modules.AssetReporting.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

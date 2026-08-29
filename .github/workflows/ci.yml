@@ -10,6 +10,20 @@ jobs:
           if git ls-files | grep -E '(^|/)(node_modules|bin|obj)/|(^|/)\.env$'; then exit 1; fi
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ehsms
+          POSTGRES_USER: ehsms_dev
+          POSTGRES_PASSWORD: ehsms_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ehsms_dev -d ehsms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -17,7 +31,32 @@ jobs:
       - run: dotnet restore backend/Ehsms.sln --locked-mode
       - run: dotnet list backend/Ehsms.sln package --vulnerable --include-transitive
       - run: dotnet build backend/Ehsms.sln --no-restore --configuration Release
-      - run: dotnet test backend/Ehsms.sln --no-build --configuration Release
+      - name: Apply PostgreSQL foundation schema
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 5432
+          PGDATABASE: ehsms
+          PGUSER: ehsms_dev
+          PGPASSWORD: ehsms_dev_pw
+        run: |
+          psql --file=database/ddl/001-foundation.sql --set=ON_ERROR_STOP=1
+          psql --file=database/seed/006-dev-seed.sql --set=ON_ERROR_STOP=1
+      - name: Run backend tests
+        env:
+          EHSMS_TEST_DB: Host=127.0.0.1;Port=5432;Database=ehsms;Username=ehsms_dev;Password=ehsms_dev_pw;Timeout=5;Command Timeout=5
+          ConnectionStrings__EhSms: Host=127.0.0.1;Port=5432;Database=ehsms;Username=ehsms_dev;Password=ehsms_dev_pw;Timeout=5;Command Timeout=5
+        run: >-
+          dotnet test backend/Ehsms.sln --no-build --configuration Release
+          --logger "trx;LogFilePrefix=backend-tests"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults/
+          if-no-files-found: warn
   frontend:
     runs-on: ubuntu-latest
     steps:
