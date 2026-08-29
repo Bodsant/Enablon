@@ -1,24 +1,24 @@
 using Ehsms.BuildingBlocks.Tenancy;
-using Ehsms.Modules.Identity.Infrastructure.Authentication;
-using Ehsms.Modules.Identity.Infrastructure.Persistence;
+using Ehsms.Modules.Saas.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ehsms.Modules.Identity.Infrastructure;
+namespace Ehsms.Modules.Saas.Infrastructure;
 
 /// <summary>
-/// DI registration for the Identity persistence layer.
+/// DI registration for the SaaS persistence layer.
 /// </summary>
-public static class IdentityPersistenceServiceCollectionExtensions
+public static class SaasPersistenceServiceCollectionExtensions
 {
-    public static IServiceCollection AddIdentityPersistence(
+    public static IServiceCollection AddSaasPersistence(
         this IServiceCollection services,
         string connectionString,
         ITenantContext? tenantContext = null)
     {
-        services.AddDbContext<IdentityDbContext>(options =>
+        services.AddDbContext<SaasDbContext>(options =>
             options.UseSnakeCaseNamingConvention().UseNpgsql(connectionString));
 
+        // Register a shared tenant context if the caller did not supply its own scoped one.
         if (tenantContext is not null)
         {
             services.AddSingleton(tenantContext);
@@ -28,8 +28,8 @@ public static class IdentityPersistenceServiceCollectionExtensions
             services.AddScoped<ITenantContext, ScopedTenantContext>();
         }
 
-        services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
-        services.AddScoped<IdentityDbSeeder>();
+        // Idempotent development seed for subscription plans and versions.
+        services.AddScoped<SaasDbSeeder>();
 
         return services;
     }

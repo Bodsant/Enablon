@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-  </ItemGroup>
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+      <PackageReference Include="EFCore.NamingConventions" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Domain\Ehsms.Modules.Saas.Domain.csproj" />
     <ProjectReference Include="..\Application\Ehsms.Modules.Saas.Application.csproj" />
