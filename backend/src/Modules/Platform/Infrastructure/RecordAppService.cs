@@ -47,7 +47,8 @@ public sealed class RecordAppService : IRecordAppService
         if (classification is null)
         {
             classification = await _db.DataClassifications
-                .FirstOrDefaultAsync(d => d.TenantId == tenantId && d.Code == "internal", cancellationToken);
+                .FirstOrDefaultAsync(d => d.TenantId == tenantId
+                    && d.Code.ToLower() == DefaultClassificationCode, cancellationToken);
         }
         if (classification is null)
         {
