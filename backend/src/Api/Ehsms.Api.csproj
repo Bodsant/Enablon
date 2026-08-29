@@ -7,6 +7,7 @@
     <ProjectReference Include="../Modules/Saas/Infrastructure/Ehsms.Modules.Saas.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" />
-  </ItemGroup>
+      <PackageReference Include="Swashbuckle.AspNetCore" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    </ItemGroup>
 </Project>

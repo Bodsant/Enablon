@@ -1,4 +1,5 @@
 using Ehsms.BuildingBlocks.Tenancy;
+using Ehsms.Modules.Identity.Infrastructure.Authentication;
 using Ehsms.Modules.Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,9 @@ public static class IdentityPersistenceServiceCollectionExtensions
         {
             services.AddScoped<ITenantContext, ScopedTenantContext>();
         }
+
+        services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddScoped<IdentityDbSeeder>();
 
         return services;
     }

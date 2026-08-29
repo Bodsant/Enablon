@@ -20,7 +20,7 @@ public sealed class ApiScaffoldTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal("ENABLON EHSMS", payload?.Name);
         Assert.Equal("modular-monolith", payload?.Capability);
         Assert.True(payload is { BusinessFeaturesImplemented: true, Persistence.Database: "postgresql" });
-        Assert.Equal("not-configured", payload?.Authentication);
+        Assert.Equal("jwt-bearer", payload?.Authentication);
     }
 
     [Fact]

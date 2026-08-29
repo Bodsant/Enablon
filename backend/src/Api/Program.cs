@@ -1,11 +1,16 @@
+using Ehsms.Api.Authentication;
 using Ehsms.Api.HealthChecks;
+using Ehsms.BuildingBlocks.Tenancy;
 using Ehsms.Modules.Identity.Infrastructure;
+using Ehsms.Modules.Identity.Infrastructure.Authentication;
 using Ehsms.Modules.Identity.Infrastructure.Persistence;
+using Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Infrastructure;
 using Ehsms.Modules.Saas.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 
@@ -52,7 +57,49 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "REST API for the ENABLON EHSMS (Environmental, Health, Safety & Sustainability) platform — a modular monolith exposing health, architecture and business endpoints under /api/v1."
     });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
+
+// Authentication & authorization: JWT bearer tokens issued by /api/v1/auth/login.
+var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>()
+    ?? new AuthOptions();
+builder.Services.AddSingleton(authOptions);
+builder.Services.AddSingleton<JwtTokenService>();
+builder.Services
+    .AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = authOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = authOptions.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(authOptions.SecretKey)),
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+    });
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 app.UseExceptionHandler();
@@ -73,12 +120,18 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Resolve the active tenant from the JWT claim into the scoped tenant context
+// (fail-closed: no tenant claim => no tenant => tenant-scoped queries return empty).
+app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapGet("/api/v1/architecture/info", () => Results.Ok(new
 {
     name = "ENABLON EHSMS",
     capability = "modular-monolith",
     businessFeaturesImplemented = true,
-    authentication = "not-configured",
+    authentication = "jwt-bearer",
     persistence = new { database = "postgresql", modules = new[] { "organisation", "identity", "platform", "saas" } }
 }));
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = check => check.Tags.Contains("live") });
@@ -136,13 +189,72 @@ app.MapGet("/api/v1/saas/plans", (Ehsms.Modules.Saas.Infrastructure.Persistence.
     return Results.Ok(plans);
 });
 
+// Authentication: issues JWT access + refresh tokens after verifying credentials.
+app.MapPost("/api/v1/auth/login", async (
+    LoginRequest request,
+    IdentityDbContext db,
+    IPasswordHasher hasher,
+    JwtTokenService tokens) =>
+{
+    var email = request.Email.Trim().ToLowerInvariant();
+    var user = await db.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == email.ToUpperInvariant());
+    if (user is null || !string.IsNullOrEmpty(user.PasswordHash) is false || !hasher.Verify(request.Password, user.PasswordHash))
+    {
+        return Results.Json(new { error = "Invalid email or password." }, statusCode: 401);
+    }
+    if (!string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.Json(new { error = "Account is not active." }, statusCode: 403);
+    }
+
+    var (accessToken, expiresAt) = tokens.CreateAccessToken(user.Id, user.Email, tenantId: null);
+    var refreshToken = JwtTokenService.GenerateRefreshToken();
+    db.RefreshTokens.Add(new RefreshTokenEntity
+    {
+        Id = Guid.NewGuid(),
+        UserId = user.Id,
+        TokenHash = JwtTokenService.HashRefreshToken(refreshToken),
+        ExpiresAt = DateTimeOffset.UtcNow.AddDays(authOptions.RefreshTokenDays),
+    });
+    user.LastLoginAt = DateTimeOffset.UtcNow;
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        accessToken,
+        expiresAt,
+        refreshToken,
+        tokenType = "Bearer",
+    });
+}).AllowAnonymous();
+
+// Protected endpoint: echoes the authenticated user identity + resolved tenant, which
+// proves the JWT pipeline and tenant-context middleware work end to end.
+app.MapGet("/api/v1/auth/me", (System.Security.Claims.ClaimsPrincipal user, ITenantContext tenant) =>
+{
+    return Results.Ok(new
+    {
+        userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                  ?? user.FindFirst("sub")?.Value,
+        email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                ?? user.FindFirst("email")?.Value,
+        tenantId = tenant.CurrentTenantId,
+    });
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
     using var seedScope = app.Services.CreateScope();
     var seeder = seedScope.ServiceProvider.GetRequiredService<SaasDbSeeder>();
     await seeder.SeedAsync();
+
+    var identitySeeder = seedScope.ServiceProvider.GetRequiredService<IdentityDbSeeder>();
+    await identitySeeder.SeedAsync();
 }
 
 app.Run();
 public partial class Program;
+
+/// <summary>Request body for <c>POST /api/v1/auth/login</c>.</summary>
+public sealed record LoginRequest(string Email, string Password);
