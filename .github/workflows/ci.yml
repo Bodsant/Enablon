@@ -14,18 +14,16 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: ehsms_dev
-          POSTGRES_PASSWORD: ehsms
           POSTGRES_DB: ehsms
+          POSTGRES_USER: ehsms_dev
+          POSTGRES_PASSWORD: ehsms_dev_pw
         ports:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U ehsms_dev -d ehsms"
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
-    env:
-      ConnectionStrings__EhSms: "Host=localhost;Port=5432;Database=ehsms;Username=ehsms_dev;Password=ehsms"
+          --health-retries 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -33,18 +31,32 @@ jobs:
       - run: dotnet restore backend/Ehsms.sln --locked-mode
       - run: dotnet list backend/Ehsms.sln package --vulnerable --include-transitive
       - run: dotnet build backend/Ehsms.sln --no-restore --configuration Release
-      - name: Prepare Postgres schema
+      - name: Apply PostgreSQL foundation schema
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 5432
+          PGDATABASE: ehsms
+          PGUSER: ehsms_dev
+          PGPASSWORD: ehsms_dev_pw
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-          export PGPASSWORD=ehsms
-          # Apply the foundation schema only. It contains every table the integration tests
-          # and Development seeders use (saas/org/iam/platform). Later waves (002-004) add
-          # modules not covered by tests and have cross-file FK ordering issues
-          # (e.g. 003 references asset schema created in 004), so they are skipped.
-          # RLS scripts (005+) are also skipped: they enforce app.current_tenant_id which
-          # the tests don't simulate, matching the local dev database.
-          psql -h localhost -U ehsms_dev -d ehsms -v ON_ERROR_STOP=1 -q -f database/ddl/001-foundation.sql
-      - run: dotnet test backend/Ehsms.sln --no-build --configuration Release
+          psql --file=database/ddl/001-foundation.sql --set=ON_ERROR_STOP=1
+          psql --file=database/seed/006-dev-seed.sql --set=ON_ERROR_STOP=1
+      - name: Run backend tests
+        env:
+          EHSMS_TEST_DB: Host=127.0.0.1;Port=5432;Database=ehsms;Username=ehsms_dev;Password=ehsms_dev_pw;Timeout=5;Command Timeout=5
+          ConnectionStrings__EhSms: Host=127.0.0.1;Port=5432;Database=ehsms;Username=ehsms_dev;Password=ehsms_dev_pw;Timeout=5;Command Timeout=5
+        run: >-
+          dotnet test backend/Ehsms.sln --no-build --configuration Release
+          --logger "trx;LogFilePrefix=backend-tests"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults/
+          if-no-files-found: warn
   frontend:
     runs-on: ubuntu-latest
     steps:

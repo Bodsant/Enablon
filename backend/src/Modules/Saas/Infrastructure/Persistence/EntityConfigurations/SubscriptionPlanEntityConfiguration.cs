@@ -8,7 +8,7 @@ namespace Ehsms.Modules.Saas.Infrastructure.Persistence.EntityConfigurations;
 public sealed class SubscriptionPlanEntityConfiguration : IEntityTypeConfiguration<SubscriptionPlan>
 {
     public const string TableName = "subscription_plans";
-    public const int CodeMaxLength = 50;
+    public const int CodeMaxLength = 30;
     public const int NameMaxLength = 100;
     public const int DescriptionMaxLength = 500;
 
@@ -19,7 +19,7 @@ public sealed class SubscriptionPlanEntityConfiguration : IEntityTypeConfigurati
 
         builder.Property(e => e.Code).IsRequired().HasMaxLength(CodeMaxLength);
         builder.Property(e => e.Name).IsRequired().HasMaxLength(NameMaxLength);
-        builder.Property(e => e.Description).HasMaxLength(DescriptionMaxLength);
+        builder.Property(e => e.Description).HasColumnType("text");
         builder.Property(e => e.IsActive).IsRequired();
 
         builder.HasIndex(e => e.Code).IsUnique().HasDatabaseName("ix_subscription_plans_code");
