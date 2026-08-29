@@ -10,6 +10,7 @@ using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Application;
 using Ehsms.Modules.Platform.Infrastructure;
+using Ehsms.Modules.Platform.Infrastructure.Persistence;
 using Ehsms.Modules.Saas.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
@@ -288,6 +289,78 @@ app.MapPost("/api/v1/platform/records", async (
     }
 }).RequireAuthorization();
 
+// Workflow: start a workflow instance for a record and advance it through decisions.
+app.MapPost("/api/v1/workflow/start", async (
+    StartWorkflowRequest request,
+    ClaimsPrincipal user,
+    IWorkflowEngine engine,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    try
+    {
+        var result = await engine.StartAsync(request.RecordId, request.WorkflowCode, memberId ?? Guid.Empty, ct);
+        return Results.Ok(result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(new { error = ex.Message }, statusCode: 400);
+    }
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/workflow/tasks/{taskId:guid}/decision", async (
+    Guid taskId,
+    MakeDecisionRequest request,
+    ClaimsPrincipal user,
+    IWorkflowEngine engine,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    try
+    {
+        var result = await engine.ExecuteTransitionAsync(taskId, request.Decision, request.Comment, memberId ?? Guid.Empty, ct);
+        return Results.Ok(result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(new { error = ex.Message }, statusCode: 400);
+    }
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/workflow/my-tasks", async (
+    ClaimsPrincipal user,
+    PlatformDbContext db,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null)
+    {
+        return Results.Json(new { tasks = new object[] { } });
+    }
+
+    var tasks = await db.WorkflowTasks
+        .Where(t => t.TenantId == tenantContext.CurrentTenantId && t.Status == "Open"
+            && (t.AssignedMemberId == null || t.AssignedMemberId == memberId))
+        .Select(t => new
+        {
+            t.Id,
+            t.TaskType,
+            t.DueAt,
+            t.Priority,
+            RecordId = t.Instance != null ? t.Instance.RecordId : (Guid?)null,
+            StateCode = t.Instance != null && t.Instance.CurrentState != null ? t.Instance.CurrentState.StateCode : null,
+        })
+        .OrderBy(t => t.DueAt)
+        .ToListAsync(ct);
+    return Results.Ok(new { tasks });
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
@@ -326,10 +399,30 @@ if (app.Environment.IsDevelopment())
                 {
                     var platformSeeder = seedScope.ServiceProvider.GetRequiredService<PlatformDbSeeder>();
                     await platformSeeder.SeedAsync(firstTenant.Id);
+
+                    // Seed the incident-approval workflow so the engine can run end-to-end.
+                    var workflowSeeder = seedScope.ServiceProvider.GetRequiredService<WorkflowDbSeeder>();
+                    await workflowSeeder.SeedAsync(firstTenant.Id);
                 }
         }
 
 app.Run();
+
+/// <summary>Resolves the tenant-member id of the authenticated user within the active tenant.</summary>
+static async Task<Guid?> ResolveActiveMemberIdAsync(ClaimsPrincipal user, Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext, IdentityDbContext db, CancellationToken ct)
+{
+    var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var tenantId = tenantContext.CurrentTenantId;
+    if (sub is null || tenantId is null || !Guid.TryParse(sub, out var userId))
+    {
+        return null;
+    }
+    return await db.TenantMembers
+        .Where(m => m.UserId == userId && m.TenantId == tenantId && m.Status == "Active")
+        .Select(m => (Guid?)m.Id)
+        .FirstOrDefaultAsync(ct);
+}
+
 public partial class Program;
 
 /// <summary>Request body for <c>POST /api/v1/auth/login</c>.</summary>
@@ -337,3 +430,9 @@ public sealed record LoginRequest(string Email, string Password);
 
 /// <summary>Request body for <c>POST /api/v1/platform/records</c>.</summary>
 public sealed record CreateRecordRequest(string ModuleCode, string RecordType, string Title, Guid DataClassificationId);
+
+/// <summary>Request body for <c>POST /api/v1/workflow/start</c>.</summary>
+public sealed record StartWorkflowRequest(Guid RecordId, string WorkflowCode);
+
+/// <summary>Request body for <c>POST /api/v1/workflow/tasks/{taskId}/decision</c>.</summary>
+public sealed record MakeDecisionRequest(string Decision, string? Comment);
