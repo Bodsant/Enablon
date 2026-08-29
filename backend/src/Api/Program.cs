@@ -423,6 +423,62 @@ app.MapPost("/api/v1/notifications/{id:guid}/read", async (
     return ok ? Results.Ok(new { read = true }) : Results.NotFound();
 }).RequireAuthorization();
 
+// Evidence & file lifecycle: upload, link as evidence, short-lived download URL.
+app.MapPost("/api/v1/platform/files", async (
+    UploadFileRequest request,
+    ClaimsPrincipal user,
+    IFileService files,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (userId is null || !Guid.TryParse(userId, out var userIdGuid))
+    {
+        return Results.Unauthorized();
+    }
+    var content = Convert.FromBase64String(request.ContentBase64);
+    var result = await files.UploadAsync(
+        tenantContext.CurrentTenantId.Value, userIdGuid, request.FileName, request.MimeType, content, ct: ct);
+    return Results.Created($"/api/v1/platform/files/{result.FileObjectId}", result);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/platform/records/{recordId:guid}/evidence", async (
+    Guid recordId,
+    LinkEvidenceRequest request,
+    ClaimsPrincipal user,
+    IFileService files,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var linkId = await files.LinkEvidenceAsync(
+        tenantContext.CurrentTenantId.Value, recordId, request.FileObjectId, request.EvidenceType, memberId.Value, ct);
+    return Results.Created($"/api/v1/platform/records/{recordId}/evidence/{linkId}", new { id = linkId });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/platform/files/{fileId:guid}/download-url", async (
+    Guid fileId,
+    IFileService files,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var url = await files.GetDownloadUrlAsync(tenantContext.CurrentTenantId.Value, fileId, ct: ct);
+    return url is null ? Results.NotFound() : Results.Ok(url);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
@@ -496,5 +552,11 @@ public sealed record CreateRecordRequest(string ModuleCode, string RecordType, s
 /// <summary>Request body for <c>POST /api/v1/workflow/start</c>.</summary>
 public sealed record StartWorkflowRequest(Guid RecordId, string WorkflowCode);
 
-/// <summary>Request body for <c>POST /api/v1/workflow/tasks/{taskId}/decision</c>.</summary>
+/// <summary>Request body for <c>POST /api/v1/workflow/tasks/{id}/decision</c>.</summary>
 public sealed record MakeDecisionRequest(string Decision, string? Comment);
+
+/// <summary>Request body for <c>POST /api/v1/platform/files</c>.</summary>
+public sealed record UploadFileRequest(string FileName, string MimeType, string ContentBase64);
+
+/// <summary>Request body for <c>POST /api/v1/platform/records/{id}/evidence</c>.</summary>
+public sealed record LinkEvidenceRequest(Guid FileObjectId, string EvidenceType);

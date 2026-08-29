@@ -18,8 +18,8 @@ Semua perubahan ada di branch `development`, sudah di-push ke `origin/developmen
 | 5 | Architecture Review | ⏳ 2/5 | — |
 | **6** | **Platform Records & Audit** | ✅ 6/6 | `1df0977` |
 | **7** | **Platform Workflow Engine** | ✅ 6/6 | `71bebc4` |
-| 8 | My Tasks & Notifications | ⏳ 1/5 | — |
-| 9 | Evidence & File Lifecycle | ⏳ 1/5 | — |
+| **8** | **My Tasks & Notifications** | ✅ 6/6 | `1b8da22` (branch `feature/sprint-8`) |
+| **9** | **Evidence & File Lifecycle** | ✅ 5/5 | `b3dd092` (branch `feature/sprint-9`) |
 | 10 | Angular Shell & Admin | ⏳ 3/7 | — |
 
 ---
@@ -63,7 +63,7 @@ Semua perubahan ada di branch `development`, sudah di-push ke `origin/developmen
 
 ---
 
-## Test  (semua hijau, 30 total)
+## Test  (semua hijau, 33 total)
 | Proyek | Jumlah |
 |--------|--------|
 | UnitTests (termasuk 5 test hasher) | 7 |
@@ -93,6 +93,9 @@ dotnet test Ehsms.sln
 | `POST /api/v1/auth/login` | login → access token (+ refresh) |
 | `GET  /api/v1/auth/me` | identitas + tenantId (protected) |
 | `POST /api/v1/platform/records` | create record → `HSE-<YYYYMM>-<seq>` (protected) |
+| `POST /api/v1/platform/files` | upload file (quota-aware) → FileObject (protected) |
+| `POST /api/v1/platform/records/{id}/evidence` | link file sebagai evidence (protected) |
+| `GET  /api/v1/platform/files/{id}/download-url` | URL unduhan short-lived (protected) |
 | `POST /api/v1/workflow/start` | jalankan workflow utk record (protected) |
 | `POST /api/v1/workflow/tasks/{id}/decision` | ambil keputusan, pindah state (protected) |
 | `GET  /api/v1/workflow/my-tasks` | task Open milik member (protected) |
