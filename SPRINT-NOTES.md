@@ -17,7 +17,7 @@ Semua perubahan ada di branch `development`, sudah di-push ke `origin/developmen
 | 4 | IAM Core (Authentication) | ✅ 6/6 | `e5eccd3` |
 | 5 | Architecture Review | ⏳ 2/5 | — |
 | **6** | **Platform Records & Audit** | ✅ 6/6 | `1df0977` |
-| 7 | Platform Workflow Engine | ⏳ 2/6 | — |
+| **7** | **Platform Workflow Engine** | ✅ 6/6 | `71bebc4` |
 | 8 | My Tasks & Notifications | ⏳ 1/5 | — |
 | 9 | Evidence & File Lifecycle | ⏳ 1/5 | — |
 | 10 | Angular Shell & Admin | ⏳ 3/7 | — |
@@ -51,20 +51,31 @@ Semua perubahan ada di branch `development`, sudah di-push ke `origin/developmen
 2. **FK `records.created_by_member_id`** — harus di-set dari tenant member aktif (resolve dari JWT `sub`), bukan `Guid.Empty`.
 3. **Data classification kosong** — perlu seeder default, kalau tidak create record kena FK violation.
 
+## Sprint 7 — Platform Workflow Engine  (`71bebc4`)
+- **`backend/src/Modules/Platform/Application/IWorkflowEngine.cs`** — kontrak start & advance workflow.
+- **`backend/src/Modules/Platform/Infrastructure/WorkflowEngine.cs`** — state-machine: `StartAsync` (buat instance, mulai di initial state + task pertama) dan `ExecuteTransitionAsync` (validasi transition legal, gate permission & JSON condition, catat decision + audit, pindah state, task berikutnya / complete di terminal).
+- **`backend/src/Modules/Platform/Application/IWorkflowPermissionChecker.cs`** — *seam* permission agar engine tak bergantung modul Identity; API nanti wire checker berbasis Identity.
+- **`backend/src/Modules/Platform/Infrastructure/GrantAllWorkflowPermissionChecker.cs`** — implementasi default (grant-all).
+- **`backend/src/Modules/Platform/Infrastructure/WorkflowDbSeeder.cs`** — seed workflow `incident-approval` (states draft→submitted→approved/rejected + transitions), idempotent.
+- **`backend/src/Modules/Platform/Infrastructure/EscalationWorker.cs`** — `BackgroundService` menaikkan task Open yang overdue → Critical + audit.
+- Endpoints: `POST /workflow/start`, `POST /workflow/tasks/{id}/decision`, `GET /workflow/my-tasks`.
+- Test: `WorkflowFlowTests` (start → submit → approve, terminal).
+
 ---
 
-## Test  (semua hijau, 29 total)
+## Test  (semua hijau, 30 total)
 | Proyek | Jumlah |
 |--------|--------|
 | UnitTests (termasuk 5 test hasher) | 7 |
 | ArchitectureTests | 7 |
 | DatabaseTests | 1 |
-| IntegrationTests (termasuk AuthFlow + PlatformRecordFlow) | 14 |
+| IntegrationTests (termasuk AuthFlow + PlatformRecordFlow + WorkflowFlow) | 15 |
 
 File test baru:
 - **`backend/tests/unit/Pbkdf2PasswordHasherTests.cs`**
 - **`backend/tests/integration/AuthFlowTests.cs`**
 - **`backend/tests/integration/PlatformRecordFlowTests.cs`**
+- **`backend/tests/integration/WorkflowFlowTests.cs`**
 
 Cara jalankan:
 ```bash
@@ -82,6 +93,9 @@ dotnet test Ehsms.sln
 | `POST /api/v1/auth/login` | login → access token (+ refresh) |
 | `GET  /api/v1/auth/me` | identitas + tenantId (protected) |
 | `POST /api/v1/platform/records` | create record → `HSE-<YYYYMM>-<seq>` (protected) |
+| `POST /api/v1/workflow/start` | jalankan workflow utk record (protected) |
+| `POST /api/v1/workflow/tasks/{id}/decision` | ambil keputusan, pindah state (protected) |
+| `GET  /api/v1/workflow/my-tasks` | task Open milik member (protected) |
 | `GET  /api/v1/platform/records/count` | jumlah record |
 | `GET  /api/v1/saas/plans` | daftar plan |
 | `GET  /api/v1/architecture/info` | modul yang ter-wire |
