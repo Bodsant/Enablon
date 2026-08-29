@@ -38,6 +38,12 @@ public static class PlatformPersistenceServiceCollectionExtensions
         services.AddScoped<PlatformDbSeeder>();
         services.AddHostedService<OutboxDispatcherWorker>();
 
+        // Workflow engine: state transitions with permission/condition gates.
+        services.AddScoped<IWorkflowEngine, WorkflowEngine>();
+        services.AddScoped<IWorkflowPermissionChecker, GrantAllWorkflowPermissionChecker>();
+        services.AddScoped<WorkflowDbSeeder>();
+        services.AddHostedService<EscalationWorker>();
+
         return services;
     }
 }
