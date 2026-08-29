@@ -1,4 +1,5 @@
 using Ehsms.BuildingBlocks.Tenancy;
+using Ehsms.Modules.Platform.Application;
 using Ehsms.Modules.Platform.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,12 @@ public static class PlatformPersistenceServiceCollectionExtensions
         {
             services.AddScoped<ITenantContext, ScopedTenantContext>();
         }
+
+        // Platform application services: record creation with number sequence + audit + outbox.
+        services.AddScoped<AuditLogWriter>();
+        services.AddScoped<IRecordAppService, RecordAppService>();
+        services.AddScoped<PlatformDbSeeder>();
+        services.AddHostedService<OutboxDispatcherWorker>();
 
         return services;
     }

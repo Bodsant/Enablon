@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Ehsms.Api.Authentication;
 using Ehsms.Api.HealthChecks;
 using Ehsms.BuildingBlocks.Tenancy;
@@ -7,6 +8,7 @@ using Ehsms.Modules.Identity.Infrastructure.Persistence;
 using Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
+using Ehsms.Modules.Platform.Application;
 using Ehsms.Modules.Platform.Infrastructure;
 using Ehsms.Modules.Saas.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -122,8 +124,8 @@ app.Use(async (context, next) =>
 
 // Resolve the active tenant from the JWT claim into the scoped tenant context
 // (fail-closed: no tenant claim => no tenant => tenant-scoped queries return empty).
-app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthentication();
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
 app.MapGet("/api/v1/architecture/info", () => Results.Ok(new
@@ -207,7 +209,13 @@ app.MapPost("/api/v1/auth/login", async (
         return Results.Json(new { error = "Account is not active." }, statusCode: 403);
     }
 
-    var (accessToken, expiresAt) = tokens.CreateAccessToken(user.Id, user.Email, tenantId: null);
+    Guid? tenantId = null;
+    var activeMember = await db.TenantMembers
+        .FirstOrDefaultAsync(m => m.UserId == user.Id && m.Status == "Active"
+            && (m.ActivatedAt == null || m.ActivatedAt <= DateTimeOffset.UtcNow));
+    tenantId = activeMember?.TenantId;
+
+    var (accessToken, expiresAt) = tokens.CreateAccessToken(user.Id, user.Email, tenantId);
     var refreshToken = JwtTokenService.GenerateRefreshToken();
     db.RefreshTokens.Add(new RefreshTokenEntity
     {
@@ -242,6 +250,44 @@ app.MapGet("/api/v1/auth/me", (System.Security.Claims.ClaimsPrincipal user, ITen
     });
 }).RequireAuthorization();
 
+// Platform: create a record through the app service (number sequence + audit + outbox).
+app.MapPost("/api/v1/platform/records", async (
+    CreateRecordRequest request,
+    ClaimsPrincipal user,
+    IRecordAppService records,
+    IdentityDbContext identityDb,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    try
+    {
+        // Resolve the calling tenant member id to satisfy records.created_by_member_id.
+        var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var tenantId = tenantContext.CurrentTenantId;
+        Guid? memberId = null;
+        if (sub is not null && tenantId is not null && Guid.TryParse(sub, out var userId))
+        {
+            memberId = (await identityDb.TenantMembers
+                .Where(m => m.UserId == userId && m.TenantId == tenantId && m.Status == "Active")
+                .Select(m => (Guid?)m.Id)
+                .FirstOrDefaultAsync(ct));
+        }
+
+        var result = await records.CreateAsync(
+            request.ModuleCode,
+            request.RecordType,
+            request.Title,
+            request.DataClassificationId,
+            memberId ?? Guid.Empty,
+            ct);
+        return Results.Created($"/api/v1/platform/records/{result.Id}", result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(new { error = ex.Message }, statusCode: 400);
+    }
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
@@ -250,11 +296,44 @@ if (app.Environment.IsDevelopment())
     await seeder.SeedAsync();
 
     var identitySeeder = seedScope.ServiceProvider.GetRequiredService<IdentityDbSeeder>();
-    await identitySeeder.SeedAsync();
-}
+        await identitySeeder.SeedAsync();
+
+        // Development convenience: give the seeded admin an Active membership in the first
+        // tenant so the full tenant-scoped flow (login claim -> records/audit/outbox) can
+        // be exercised locally. Idempotent: skipped when a membership already exists.
+        var identityDb = seedScope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var saasDb = seedScope.ServiceProvider.GetRequiredService<Ehsms.Modules.Saas.Infrastructure.Persistence.SaasDbContext>();
+        var firstTenant = await saasDb.Tenants.OrderBy(t => t.Id).FirstOrDefaultAsync();
+        var admin = await identityDb.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == IdentityDbSeeder.DevEmail.ToUpperInvariant());
+        if (firstTenant is not null && admin is not null
+                    && !await identityDb.TenantMembers.AnyAsync(m => m.UserId == admin.Id && m.TenantId == firstTenant.Id))
+                {
+                    identityDb.TenantMembers.Add(new TenantMemberEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        TenantId = firstTenant.Id,
+                        UserId = admin.Id,
+                        DisplayName = "Admin",
+                        Status = "Active",
+                        ActivatedAt = DateTimeOffset.UtcNow,
+                    });
+                    await identityDb.SaveChangesAsync();
+                }
+
+                // Seed default data classifications for the dev tenant so record creation
+                // has a valid classification to reference.
+                if (firstTenant is not null)
+                {
+                    var platformSeeder = seedScope.ServiceProvider.GetRequiredService<PlatformDbSeeder>();
+                    await platformSeeder.SeedAsync(firstTenant.Id);
+                }
+        }
 
 app.Run();
 public partial class Program;
 
 /// <summary>Request body for <c>POST /api/v1/auth/login</c>.</summary>
 public sealed record LoginRequest(string Email, string Password);
+
+/// <summary>Request body for <c>POST /api/v1/platform/records</c>.</summary>
+public sealed record CreateRecordRequest(string ModuleCode, string RecordType, string Title, Guid DataClassificationId);
