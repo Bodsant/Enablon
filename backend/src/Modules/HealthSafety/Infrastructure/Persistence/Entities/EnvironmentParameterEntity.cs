@@ -10,6 +10,4 @@ public sealed class EnvironmentParameterEntity
     public string Category { get; set; } = string.Empty;
     public string? DefaultUnit { get; set; } = null;
     public string Status { get; set; } = string.Empty;
-
-    public ICollection<EnvironmentTargetEntity> Targets { get; set; } = new List<EnvironmentTargetEntity>();
-}
+    }

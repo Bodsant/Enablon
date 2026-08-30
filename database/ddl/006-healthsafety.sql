@@ -153,3 +153,87 @@ CREATE INDEX IF NOT EXISTS idx_ppe_assignments_tenant
 CREATE INDEX IF NOT EXISTS idx_ppe_assignments_inventory
     ON ppe.assignments (ppe_inventory_id);
 
+-- ppe.inspections: periodic inspection of PPE items.
+CREATE TABLE IF NOT EXISTS ppe.inspections (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    ppe_inventory_id      uuid NOT NULL,
+    inspected_by_member_id uuid NOT NULL,
+    inspected_at          timestamptz NOT NULL,
+    condition             varchar(30) NOT NULL,
+    result                varchar(30) NOT NULL,
+    next_due_date         date
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_inspections_tenant
+    ON ppe.inspections (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_inspections_inventory
+    ON ppe.inspections (ppe_inventory_id);
+
+-- ppe.replacements: replacement requests for PPE assignments.
+CREATE TABLE IF NOT EXISTS ppe.replacements (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    ppe_assignment_id  uuid NOT NULL,
+    replacement_reason text NOT NULL,
+    requested_at       timestamptz NOT NULL,
+    completed_at       timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_replacements_tenant
+    ON ppe.replacements (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_replacements_assignment
+    ON ppe.replacements (ppe_assignment_id);
+
+-- environment.parameters: measurable environmental parameters.
+CREATE TABLE IF NOT EXISTS environment.parameters (
+    id           uuid PRIMARY KEY,
+    tenant_id    uuid NOT NULL,
+    code         varchar(50) NOT NULL,
+    name         varchar(200) NOT NULL,
+    category     varchar(60) NOT NULL,
+    default_unit varchar(30),
+    status       varchar(20) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_env_parameters_tenant
+    ON environment.parameters (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_env_parameters_category
+    ON environment.parameters (category);
+
+-- environment.sources: emission/exposure sources.
+CREATE TABLE IF NOT EXISTS environment.sources (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    site_id          uuid NOT NULL,
+    location_id      uuid,
+    source_type      varchar(60) NOT NULL,
+    name             varchar(200) NOT NULL,
+    permit_reference varchar(100)
+);
+
+CREATE INDEX IF NOT EXISTS idx_env_sources_tenant
+    ON environment.sources (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_env_sources_site
+    ON environment.sources (site_id);
+
+-- environment.measurements: monitoring results.
+CREATE TABLE IF NOT EXISTS environment.measurements (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    monitoring_record_id uuid NOT NULL,
+    parameter_id        uuid NOT NULL,
+    measured_at         timestamptz NOT NULL,
+    result_value        numeric(18,6),
+    unit                varchar(30),
+    limit_value         numeric(18,6),
+    target_value        numeric(18,6),
+    quality_flag        varchar(30),
+    compliance_status   varchar(30)
+);
+
+CREATE INDEX IF NOT EXISTS idx_env_measurements_tenant
+    ON environment.measurements (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_env_measurements_parameter
+    ON environment.measurements (parameter_id);
+

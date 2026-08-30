@@ -833,6 +833,171 @@ app.MapGet("/api/v1/ppe/assignments", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// PPE inspections & replacements (HealthSafety module).
+app.MapPost("/api/v1/ppe/inspections", async (
+    RecordPpeInspectionRequest request,
+    ClaimsPrincipal user,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await ppe.RecordInspectionAsync(request, memberId.Value, ct);
+    return Results.Created($"/api/v1/ppe/inspections/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/inspections", async (
+    Guid? ppeInventoryId,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListInspectionsAsync(ppeInventoryId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/replacements", async (
+    RequestPpeReplacementRequest request,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.RequestReplacementAsync(request, ct);
+    return Results.Created($"/api/v1/ppe/replacements/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/replacements/{replacementId:guid}/complete", async (
+    Guid replacementId,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.CompleteReplacementAsync(replacementId, ct);
+    return item is null
+        ? Results.NotFound()
+        : Results.Ok(item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/replacements", async (
+    Guid? ppeAssignmentId,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListReplacementsAsync(ppeAssignmentId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+// Environment monitoring (HealthSafety module).
+app.MapPost("/api/v1/environment/parameters", async (
+    CreateEnvironmentParameterRequest request,
+    IEnvironmentMonitoringService env,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await env.CreateParameterAsync(request, ct);
+    return Results.Created($"/api/v1/environment/parameters/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/environment/parameters", async (
+    string? category,
+    IEnvironmentMonitoringService env,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await env.ListParametersAsync(category, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/environment/sources", async (
+    CreateEnvironmentSourceRequest request,
+    IEnvironmentMonitoringService env,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await env.CreateSourceAsync(request, ct);
+    return Results.Created($"/api/v1/environment/sources/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/environment/sources", async (
+    Guid? siteId,
+    IEnvironmentMonitoringService env,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await env.ListSourcesAsync(siteId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/environment/measurements", async (
+    RecordEnvironmentMeasurementRequest request,
+    ClaimsPrincipal user,
+    IEnvironmentMonitoringService env,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var monitoringRecordId = Guid.NewGuid();
+    var item = await env.RecordMeasurementAsync(request, monitoringRecordId, memberId.Value, ct);
+    return Results.Created($"/api/v1/environment/measurements/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/environment/measurements", async (
+    Guid? parameterId,
+    IEnvironmentMonitoringService env,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await env.ListMeasurementsAsync(parameterId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
