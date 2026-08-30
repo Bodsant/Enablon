@@ -11,6 +11,4 @@ public sealed class PpeCatalogEntity
     public int? InspectionIntervalDays { get; set; } = null;
     public int? ReplacementIntervalDays { get; set; } = null;
     public string Status { get; set; } = string.Empty;
-
-    public ICollection<PpeRequirementEntity> PpeRequirements { get; set; } = new List<PpeRequirementEntity>();
-}
+    }

@@ -636,6 +636,62 @@ app.MapGet("/api/v1/chemical/storage-inspections", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// PPE catalogue & requirements (HealthSafety module).
+app.MapPost("/api/v1/ppe/catalog", async (
+    CreatePpeCatalogRequest request,
+    IPpeCatalogService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.CreateCatalogAsync(request, ct);
+    return Results.Created($"/api/v1/ppe/catalog/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/catalog", async (
+    IPpeCatalogService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListCatalogsAsync(ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/requirements", async (
+    CreatePpeRequirementRequest request,
+    IPpeCatalogService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.CreateRequirementAsync(request, ct);
+    return Results.Created($"/api/v1/ppe/requirements/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/requirements", async (
+    Guid? ppeCatalogId,
+    IPpeCatalogService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListRequirementsAsync(ppeCatalogId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {

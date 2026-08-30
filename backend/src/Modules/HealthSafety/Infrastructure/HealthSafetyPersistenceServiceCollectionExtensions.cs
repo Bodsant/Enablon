@@ -43,6 +43,9 @@ public static class HealthSafetyPersistenceServiceCollectionExtensions
         // Chemical storage inspections.
         services.AddScoped<IChemicalStorageInspectionService, ChemicalStorageInspectionService>();
 
+        // PPE catalogue & requirements.
+        services.AddScoped<IPpeCatalogService, PpeCatalogService>();
+
         return services;
     }
 }
