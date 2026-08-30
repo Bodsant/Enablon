@@ -628,7 +628,9 @@
       "ehsms.modules.safetyrisk.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
           "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
           "Ehsms.Modules.SafetyRisk.Application": "[1.0.0, )",
           "Ehsms.Modules.SafetyRisk.Contracts": "[1.0.0, )",
           "Ehsms.Modules.SafetyRisk.Domain": "[1.0.0, )",

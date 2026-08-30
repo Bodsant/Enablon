@@ -541,6 +541,7 @@
           "Ehsms.Modules.Organisation.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.Platform.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.Saas.Infrastructure": "[1.0.0, )",
+          "Ehsms.Modules.SafetyRisk.Infrastructure": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[8.0.30, )",
           "Swashbuckle.AspNetCore": "[6.9.0, )"
         }
@@ -690,6 +691,35 @@
           "Ehsms.Modules.Saas.Application": "[1.0.0, )",
           "Ehsms.Modules.Saas.Contracts": "[1.0.0, )",
           "Ehsms.Modules.Saas.Domain": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
+        }
+      },
+      "ehsms.modules.safetyrisk.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.SafetyRisk.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.SafetyRisk.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.safetyrisk.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.safetyrisk.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.safetyrisk.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.SafetyRisk.Application": "[1.0.0, )",
+          "Ehsms.Modules.SafetyRisk.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.SafetyRisk.Domain": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },

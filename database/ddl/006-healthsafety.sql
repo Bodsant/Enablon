@@ -237,3 +237,121 @@ CREATE INDEX IF NOT EXISTS idx_env_measurements_tenant
 CREATE INDEX IF NOT EXISTS idx_env_measurements_parameter
     ON environment.measurements (parameter_id);
 
+-- =====================================================================
+-- SafetyRisk module: risk schema (Trello Sprint 11 - Hazard & Risk Backend)
+-- =====================================================================
+CREATE SCHEMA IF NOT EXISTS risk;
+
+CREATE TABLE IF NOT EXISTS risk.matrix_versions (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    name             text NOT NULL,
+    version_number   integer NOT NULL,
+    likelihood_scale integer NOT NULL,
+    severity_scale   integer NOT NULL,
+    effective_from   date NOT NULL,
+    effective_to     date,
+    status           text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_matrix_versions_tenant
+    ON risk.matrix_versions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS risk.matrix_cells (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    matrix_version_id uuid NOT NULL,
+    likelihood_value  smallint NOT NULL,
+    severity_value    smallint NOT NULL,
+    risk_score        integer NOT NULL,
+    risk_level_code   text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_matrix_cells_tenant
+    ON risk.matrix_cells (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_risk_matrix_cells_version
+    ON risk.matrix_cells (matrix_version_id);
+
+CREATE TABLE IF NOT EXISTS risk.hazards (
+    id          uuid PRIMARY KEY,
+    tenant_id   uuid NOT NULL,
+    code        text NOT NULL,
+    name        text NOT NULL,
+    category_id uuid,
+    description text,
+    status      text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_hazards_tenant
+    ON risk.hazards (tenant_id);
+
+CREATE TABLE IF NOT EXISTS risk.registers (
+    id             uuid PRIMARY KEY,
+    tenant_id      uuid NOT NULL,
+    record_id      uuid NOT NULL,
+    hazard_id      uuid NOT NULL,
+    activity_name  text NOT NULL,
+    risk_event     text NOT NULL,
+    owner_member_id uuid NOT NULL,
+    review_date    date,
+    status         text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_registers_tenant
+    ON risk.registers (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_risk_registers_hazard
+    ON risk.registers (hazard_id);
+
+CREATE TABLE IF NOT EXISTS risk.assessments (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    risk_register_id   uuid NOT NULL,
+    matrix_version_id  uuid NOT NULL,
+    assessment_type    text NOT NULL,
+    sequence_number    integer NOT NULL,
+    likelihood_value   smallint NOT NULL,
+    severity_value     smallint NOT NULL,
+    risk_score         integer NOT NULL,
+    risk_level_code    text NOT NULL,
+    assessed_by_member_id uuid NOT NULL,
+    assessed_at        timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_assessments_tenant
+    ON risk.assessments (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_risk_assessments_register
+    ON risk.assessments (risk_register_id);
+
+CREATE TABLE IF NOT EXISTS risk.controls (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    risk_register_id    uuid NOT NULL,
+    control_type        text NOT NULL,
+    control_stage       text NOT NULL,
+    description         text NOT NULL,
+    owner_member_id     uuid,
+    due_date            date,
+    status              text NOT NULL,
+    effectiveness_rating smallint
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_controls_tenant
+    ON risk.controls (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_risk_controls_register
+    ON risk.controls (risk_register_id);
+
+CREATE TABLE IF NOT EXISTS risk.reviews (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    risk_register_id      uuid NOT NULL,
+    reviewed_by_member_id uuid NOT NULL,
+    reviewed_at           timestamptz NOT NULL,
+    decision              text NOT NULL,
+    comment               text
+);
+
+CREATE INDEX IF NOT EXISTS idx_risk_reviews_tenant
+    ON risk.reviews (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_risk_reviews_register
+    ON risk.reviews (risk_register_id);
+
