@@ -577,6 +577,65 @@ app.MapGet("/api/v1/chemical/products", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// Chemical inventory & SDS (HealthSafety module).
+app.MapPost("/api/v1/chemical/inventory", async (
+    AddInventoryRequest request,
+    IChemicalInventoryService inventory,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await inventory.AddInventoryAsync(request, ct);
+    return Results.Created($"/api/v1/chemical/inventory/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/chemical/inventory", async (
+    Guid? productId,
+    IChemicalInventoryService inventory,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await inventory.ListInventoryAsync(productId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/chemical/products/{productId:guid}/sds", async (
+    Guid productId,
+    RecordSdsRevisionRequest request,
+    IChemicalInventoryService inventory,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var updated = request with { ChemicalProductId = productId };
+    var item = await inventory.RecordSdsRevisionAsync(updated, ct);
+    return Results.Created($"/api/v1/chemical/products/{productId}/sds/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/chemical/products/{productId:guid}/sds", async (
+    Guid productId,
+    IChemicalInventoryService inventory,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await inventory.ListSdsRevisionsAsync(productId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {

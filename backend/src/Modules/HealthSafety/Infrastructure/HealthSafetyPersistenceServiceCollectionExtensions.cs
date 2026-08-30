@@ -34,6 +34,9 @@ public static class HealthSafetyPersistenceServiceCollectionExtensions
         // Chemical product catalogue (creates a backing platform record via contract).
         services.AddScoped<IChemicalCatalogService, ChemicalCatalogService>();
 
+        // Chemical inventory & SDS records.
+        services.AddScoped<IChemicalInventoryService, ChemicalInventoryService>();
+
         return services;
     }
 }

@@ -23,3 +23,36 @@ CREATE INDEX IF NOT EXISTS idx_chemical_products_tenant
     ON chemical.products (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_chemical_products_record
     ON chemical.products (record_id);
+
+-- chemical.inventory: stock of a chemical product at a location.
+CREATE TABLE IF NOT EXISTS chemical.inventory (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    chemical_product_id uuid NOT NULL,
+    location_id      uuid NOT NULL,
+    quantity         numeric,
+    unit             text,
+    storage_condition text,
+    expiry_date      date
+);
+
+CREATE INDEX IF NOT EXISTS idx_chemical_inventory_tenant
+    ON chemical.inventory (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_chemical_inventory_product
+    ON chemical.inventory (chemical_product_id);
+
+-- chemical.sds_revisions: safety data sheet document revisions per product.
+CREATE TABLE IF NOT EXISTS chemical.sds_revisions (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    chemical_product_id uuid NOT NULL,
+    revision_number  text NOT NULL,
+    effective_date   date,
+    file_object_id   uuid NOT NULL,
+    language         text,
+    status           text NOT NULL DEFAULT 'Active'
+);
+
+CREATE INDEX IF NOT EXISTS idx_chemical_sds_product
+    ON chemical.sds_revisions (chemical_product_id);
+

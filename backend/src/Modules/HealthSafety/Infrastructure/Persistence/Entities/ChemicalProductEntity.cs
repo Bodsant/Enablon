@@ -12,6 +12,4 @@ public sealed class ChemicalProductEntity
     public string? HazardClassificationJson { get; set; } = null;
     public Guid? OwnerMemberId { get; set; } = null;
     public string Status { get; set; } = string.Empty;
-
-    public ICollection<ChemicalInventoryEntity> ChemicalInventoryItems { get; set; } = new List<ChemicalInventoryEntity>();
 }
