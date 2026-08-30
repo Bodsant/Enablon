@@ -40,6 +40,7 @@ jobs:
           PGPASSWORD: ehsms_dev_pw
         run: |
           psql --file=database/ddl/001-foundation.sql --set=ON_ERROR_STOP=1
+          psql --file=database/ddl/006-healthsafety.sql --set=ON_ERROR_STOP=1
           psql --file=database/seed/006-dev-seed.sql --set=ON_ERROR_STOP=1
       - name: Run backend tests
         env:
