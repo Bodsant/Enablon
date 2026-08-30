@@ -52,6 +52,9 @@ public static class HealthSafetyPersistenceServiceCollectionExtensions
         // PPE inspections & replacements.
         services.AddScoped<IPpeInspectionService, PpeInspectionService>();
 
+        // Environment monitoring (parameters, sources, measurements).
+        services.AddScoped<IEnvironmentMonitoringService, EnvironmentMonitoringService>();
+
         return services;
     }
 }
