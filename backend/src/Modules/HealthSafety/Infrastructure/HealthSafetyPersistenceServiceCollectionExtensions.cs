@@ -46,6 +46,9 @@ public static class HealthSafetyPersistenceServiceCollectionExtensions
         // PPE catalogue & requirements.
         services.AddScoped<IPpeCatalogService, PpeCatalogService>();
 
+        // PPE inventory & assignments.
+        services.AddScoped<IPpeInventoryService, PpeInventoryService>();
+
         return services;
     }
 }

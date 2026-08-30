@@ -119,3 +119,37 @@ CREATE INDEX IF NOT EXISTS idx_ppe_requirements_tenant
 CREATE INDEX IF NOT EXISTS idx_ppe_requirements_catalog
     ON ppe.requirements (ppe_catalog_id);
 
+-- ppe.inventory: PPE stock per site.
+CREATE TABLE IF NOT EXISTS ppe.inventory (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    ppe_catalog_id  uuid NOT NULL,
+    site_id         uuid NOT NULL,
+    serial_number   varchar(100),
+    quantity_on_hand integer,
+    condition       varchar(30),
+    status          varchar(30) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_inventory_tenant
+    ON ppe.inventory (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_inventory_catalog
+    ON ppe.inventory (ppe_catalog_id);
+
+-- ppe.assignments: PPE issued to a person.
+CREATE TABLE IF NOT EXISTS ppe.assignments (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    ppe_inventory_id    uuid NOT NULL,
+    person_id           uuid NOT NULL,
+    issued_at           timestamptz NOT NULL,
+    issued_by_member_id uuid NOT NULL,
+    returned_at         timestamptz,
+    condition_on_return varchar(30)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_assignments_tenant
+    ON ppe.assignments (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_assignments_inventory
+    ON ppe.assignments (ppe_inventory_id);
+

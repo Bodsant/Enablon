@@ -692,6 +692,84 @@ app.MapGet("/api/v1/ppe/requirements", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// PPE inventory & assignments (HealthSafety module).
+app.MapPost("/api/v1/ppe/inventory", async (
+    RegisterPpeInventoryRequest request,
+    IPpeInventoryService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.RegisterInventoryAsync(request, ct);
+    return Results.Created($"/api/v1/ppe/inventory/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/inventory", async (
+    Guid? ppeCatalogId,
+    IPpeInventoryService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListInventoryAsync(ppeCatalogId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/assignments", async (
+    AssignPpeRequest request,
+    ClaimsPrincipal user,
+    IPpeInventoryService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await ppe.AssignAsync(request, memberId.Value, ct);
+    return Results.Created($"/api/v1/ppe/assignments/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/assignments/{assignmentId:guid}/return", async (
+    Guid assignmentId,
+    ReturnPpeRequest request,
+    IPpeInventoryService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var updated = request with { AssignmentId = assignmentId };
+    var item = await ppe.ReturnAsync(updated, ct);
+    return item is null
+        ? Results.NotFound()
+        : Results.Ok(item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/assignments", async (
+    Guid? ppeInventoryId,
+    IPpeInventoryService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListAssignmentsAsync(ppeInventoryId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
