@@ -6,9 +6,12 @@ using Ehsms.Modules.Identity.Infrastructure;
 using Ehsms.Modules.Identity.Infrastructure.Authentication;
 using Ehsms.Modules.Identity.Infrastructure.Persistence;
 using Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
+using Ehsms.Modules.HealthSafety.Contracts;
+using Ehsms.Modules.HealthSafety.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Application;
+using Ehsms.Modules.Platform.Contracts;
 using Ehsms.Modules.Platform.Infrastructure;
 using Ehsms.Modules.Platform.Infrastructure.Persistence;
 using Ehsms.Modules.Saas.Infrastructure;
@@ -41,6 +44,7 @@ builder.Services.AddOrganisationPersistence(connectionString);
 builder.Services.AddIdentityPersistence(connectionString);
 builder.Services.AddPlatformPersistence(connectionString);
 builder.Services.AddSaasPersistence(connectionString);
+builder.Services.AddHealthSafetyPersistence(connectionString);
 
 // Health checks: the process self-check (live) plus real database reachability (ready).
 builder.Services.AddHealthChecks()
@@ -477,6 +481,37 @@ app.MapGet("/api/v1/platform/files/{fileId:guid}/download-url", async (
     }
     var url = await files.GetDownloadUrlAsync(tenantContext.CurrentTenantId.Value, fileId, ct: ct);
     return url is null ? Results.NotFound() : Results.Ok(url);
+}).RequireAuthorization();
+
+// Chemical product catalogue (HealthSafety module).
+app.MapPost("/api/v1/chemical/products", async (
+    CreateChemicalProductRequest request,
+    ClaimsPrincipal user,
+    IChemicalCatalogService chemicals,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var result = await chemicals.CreateAsync(request, memberId.Value, ct);
+    return Results.Created($"/api/v1/chemical/products/{result.Id}", result);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/chemical/products", async (
+    IChemicalCatalogService chemicals,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await chemicals.ListAsync(ct);
+    return Results.Ok(items);
 }).RequireAuthorization();
 
 // Development seed: subscription plans and their current versions (idempotent).

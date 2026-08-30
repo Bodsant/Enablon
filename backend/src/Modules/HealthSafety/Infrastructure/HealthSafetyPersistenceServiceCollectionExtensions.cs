@@ -1,0 +1,49 @@
+using Ehsms.BuildingBlocks.Tenancy;
+using Ehsms.Modules.HealthSafety.Contracts;
+using Ehsms.Modules.HealthSafety.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Ehsms.Modules.HealthSafety.Infrastructure;
+
+/// <summary>
+/// DI registration for the HealthSafety persistence layer (ppe, health, chemical,
+/// environment, sustainability schemas).
+/// </summary>
+public static class HealthSafetyPersistenceServiceCollectionExtensions
+{
+    public static IServiceCollection AddHealthSafetyPersistence(
+        this IServiceCollection services,
+        string connectionString,
+        ITenantContext? tenantContext = null)
+    {
+        services.AddDbContext<HealthSafetyDbContext>(options =>
+            options.UseSnakeCaseNamingConvention().UseNpgsql(connectionString));
+
+        services.AddSingleton<IHealthSafetyDbSchema, DefaultHealthSafetyDbSchema>();
+
+        if (tenantContext is not null)
+        {
+            services.AddSingleton(tenantContext);
+        }
+        else
+        {
+            services.AddScoped<ITenantContext, ScopedTenantContext>();
+        }
+
+        // Chemical product catalogue (creates a backing platform record via contract).
+        services.AddScoped<IChemicalCatalogService, ChemicalCatalogService>();
+
+        return services;
+    }
+}
+
+/// <summary>Default schema binding for the HealthSafety module tables.</summary>
+public sealed class DefaultHealthSafetyDbSchema : IHealthSafetyDbSchema
+{
+    public string PpeSchema => "ppe";
+    public string HealthSchema => "health";
+    public string ChemicalSchema => "chemical";
+    public string EnvironmentSchema => "environment";
+    public string SustainabilitySchema => "sustainability";
+}
