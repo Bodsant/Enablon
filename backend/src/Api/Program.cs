@@ -604,6 +604,38 @@ app.MapGet("/api/v1/chemical/products/{productId:guid}/exposure-controls", async
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// Chemical storage inspections (HealthSafety module).
+app.MapPost("/api/v1/chemical/storage-inspections", async (
+    CreateStorageInspectionRequest request,
+    ClaimsPrincipal user,
+    IChemicalStorageInspectionService inspections,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await inspections.CreateAsync(request, memberId.Value, ct);
+    return Results.Created($"/api/v1/chemical/storage-inspections/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/chemical/storage-inspections", async (
+    Guid? chemicalInventoryId,
+    IChemicalStorageInspectionService inspections,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await inspections.ListAsync(chemicalInventoryId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
