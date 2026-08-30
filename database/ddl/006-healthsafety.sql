@@ -153,3 +153,35 @@ CREATE INDEX IF NOT EXISTS idx_ppe_assignments_tenant
 CREATE INDEX IF NOT EXISTS idx_ppe_assignments_inventory
     ON ppe.assignments (ppe_inventory_id);
 
+-- ppe.inspections: periodic inspection of PPE items.
+CREATE TABLE IF NOT EXISTS ppe.inspections (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    ppe_inventory_id      uuid NOT NULL,
+    inspected_by_member_id uuid NOT NULL,
+    inspected_at          timestamptz NOT NULL,
+    condition             varchar(30) NOT NULL,
+    result                varchar(30) NOT NULL,
+    next_due_date         date
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_inspections_tenant
+    ON ppe.inspections (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_inspections_inventory
+    ON ppe.inspections (ppe_inventory_id);
+
+-- ppe.replacements: replacement requests for PPE assignments.
+CREATE TABLE IF NOT EXISTS ppe.replacements (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    ppe_assignment_id  uuid NOT NULL,
+    replacement_reason text NOT NULL,
+    requested_at       timestamptz NOT NULL,
+    completed_at       timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_replacements_tenant
+    ON ppe.replacements (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_replacements_assignment
+    ON ppe.replacements (ppe_assignment_id);
+

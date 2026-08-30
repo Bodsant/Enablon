@@ -770,6 +770,82 @@ app.MapGet("/api/v1/ppe/assignments", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// PPE inspections & replacements (HealthSafety module).
+app.MapPost("/api/v1/ppe/inspections", async (
+    RecordPpeInspectionRequest request,
+    ClaimsPrincipal user,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await ppe.RecordInspectionAsync(request, memberId.Value, ct);
+    return Results.Created($"/api/v1/ppe/inspections/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/inspections", async (
+    Guid? ppeInventoryId,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListInspectionsAsync(ppeInventoryId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/replacements", async (
+    RequestPpeReplacementRequest request,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.RequestReplacementAsync(request, ct);
+    return Results.Created($"/api/v1/ppe/replacements/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/ppe/replacements/{replacementId:guid}/complete", async (
+    Guid replacementId,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await ppe.CompleteReplacementAsync(replacementId, ct);
+    return item is null
+        ? Results.NotFound()
+        : Results.Ok(item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/ppe/replacements", async (
+    Guid? ppeAssignmentId,
+    IPpeInspectionService ppe,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await ppe.ListReplacementsAsync(ppeAssignmentId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
