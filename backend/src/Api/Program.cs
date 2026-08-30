@@ -8,6 +8,8 @@ using Ehsms.Modules.Identity.Infrastructure.Persistence;
 using Ehsms.Modules.Identity.Infrastructure.Persistence.Entities;
 using Ehsms.Modules.HealthSafety.Contracts;
 using Ehsms.Modules.HealthSafety.Infrastructure;
+using Ehsms.Modules.SafetyRisk.Contracts;
+using Ehsms.Modules.SafetyRisk.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Application;
@@ -45,6 +47,7 @@ builder.Services.AddIdentityPersistence(connectionString);
 builder.Services.AddPlatformPersistence(connectionString);
 builder.Services.AddSaasPersistence(connectionString);
 builder.Services.AddHealthSafetyPersistence(connectionString);
+builder.Services.AddSafetyRiskPersistence(connectionString);
 
 // Health checks: the process self-check (live) plus real database reachability (ready).
 builder.Services.AddHealthChecks()
@@ -932,6 +935,176 @@ app.MapGet("/api/v1/environment/measurements", async (
         return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
     }
     var items = await env.ListMeasurementsAsync(parameterId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+// Hazard & risk backend (SafetyRisk module, Trello Sprint 11).
+app.MapPost("/api/v1/risk/hazards", async (
+    CreateHazardRequest request,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await risk.CreateHazardAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/risk/hazards/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/risk/hazards", async (
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await risk.ListHazardsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/risk/matrix-versions", async (
+    CreateRiskMatrixVersionRequest request,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await risk.CreateMatrixVersionAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/risk/matrix-versions/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/risk/matrix-versions", async (
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await risk.ListMatrixVersionsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/risk/matrix-cells", async (
+    CreateRiskMatrixCellRequest request,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await risk.CreateMatrixCellAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/risk/matrix-cells/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/risk/matrix-cells", async (
+    Guid? matrixVersionId,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await risk.ListMatrixCellsAsync(matrixVersionId ?? Guid.Empty, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/risk/registers", async (
+    CreateRiskRegisterRequest request,
+    ClaimsPrincipal user,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var id = await risk.CreateRegisterAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/risk/registers/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/risk/registers", async (
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await risk.ListRegistersAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/risk/assessments", async (
+    CreateRiskAssessmentRequest request,
+    ClaimsPrincipal user,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var id = await risk.CreateAssessmentAsync(request with { AssessedByMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/risk/assessments/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/risk/assessments", async (
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await risk.ListAssessmentsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/risk/controls", async (
+    CreateRiskControlRequest request,
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await risk.CreateControlAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/risk/controls/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/risk/controls", async (
+    IHazardRiskService risk,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await risk.ListControlsAsync(tenantContext.CurrentTenantId.Value, ct);
     return Results.Ok(items);
 }).RequireAuthorization();
 
