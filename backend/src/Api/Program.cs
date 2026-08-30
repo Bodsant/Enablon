@@ -10,6 +10,8 @@ using Ehsms.Modules.HealthSafety.Contracts;
 using Ehsms.Modules.HealthSafety.Infrastructure;
 using Ehsms.Modules.SafetyRisk.Contracts;
 using Ehsms.Modules.SafetyRisk.Infrastructure;
+using Ehsms.Modules.WorkControl.Contracts;
+using Ehsms.Modules.WorkControl.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Application;
@@ -48,6 +50,7 @@ builder.Services.AddPlatformPersistence(connectionString);
 builder.Services.AddSaasPersistence(connectionString);
 builder.Services.AddHealthSafetyPersistence(connectionString);
 builder.Services.AddSafetyRiskPersistence(connectionString);
+builder.Services.AddWorkControlPersistence(connectionString);
 
 // Health checks: the process self-check (live) plus real database reachability (ready).
 builder.Services.AddHealthChecks()
@@ -1353,6 +1356,159 @@ app.MapPost("/api/v1/capa/actions/{actionId:guid}/verify", async (
     }
     await incident.VerifyActionAsync(request with { ActionId = actionId }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
     return Results.Ok();
+}).RequireAuthorization();
+
+// Inspection & Audit backend (WorkControl module, Trello Sprint 15).
+app.MapPost("/api/v1/audit/programs", async (
+    CreateAuditProgramRequest request,
+    ClaimsPrincipal user,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var id = await svc.CreateAuditProgramAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/audit/programs/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/audit/programs", async (
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListAuditProgramsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/audits", async (
+    CreateAuditRequest request,
+    ClaimsPrincipal user,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateAuditAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/audits/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/audits", async (
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListAuditsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/audits/findings", async (
+    CreateAuditFindingRequest request,
+    ClaimsPrincipal user,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var id = await svc.CreateAuditFindingAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/audits/findings/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/audits/findings", async (
+    Guid? auditId,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListAuditFindingsAsync(auditId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/inspections", async (
+    CreateInspectionRequest request,
+    ClaimsPrincipal user,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateInspectionAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/inspections/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/inspections", async (
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListInspectionsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/inspections/findings", async (
+    CreateInspectionFindingRequest request,
+    ClaimsPrincipal user,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var id = await svc.CreateInspectionFindingAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/inspections/findings/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/inspections/findings", async (
+    Guid? inspectionId,
+    IInspectionAuditService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListInspectionFindingsAsync(inspectionId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
 }).RequireAuthorization();
 
 // Development seed: subscription plans and their current versions (idempotent).
