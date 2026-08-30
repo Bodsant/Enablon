@@ -32,6 +32,9 @@ public static class SafetyRiskPersistenceServiceCollectionExtensions
         // Hazard & risk backend (Trello Sprint 11).
         services.AddScoped<IHazardRiskService, HazardRiskService>();
 
+        // Incident & CAPA backend (Trello Sprint 13).
+        services.AddScoped<IIncidentCapaService, IncidentCapaService>();
+
         return services;
     }
 }

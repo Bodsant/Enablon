@@ -1108,6 +1108,190 @@ app.MapGet("/api/v1/risk/controls", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// Incident & CAPA backend (SafetyRisk module, Trello Sprint 13).
+app.MapPost("/api/v1/incidents", async (
+    CreateIncidentRequest request,
+    ClaimsPrincipal user,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await incident.CreateIncidentAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/incidents/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/incidents", async (
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await incident.ListIncidentsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/incidents/involved-people", async (
+    AddInvolvedPersonRequest request,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await incident.AddInvolvedPersonAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/incidents/involved-people/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/incidents/involved-people", async (
+    Guid? incidentId,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await incident.ListInvolvedPeopleAsync(incidentId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/incidents/investigations", async (
+    StartInvestigationRequest request,
+    ClaimsPrincipal user,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var id = await incident.StartInvestigationAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/incidents/investigations/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/incidents/investigations", async (
+    Guid? incidentId,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await incident.ListInvestigationsAsync(incidentId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/incidents/root-causes", async (
+    AddRootCauseRequest request,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await incident.AddRootCauseAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/incidents/root-causes/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/incidents/root-causes", async (
+    Guid? investigationId,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await incident.ListRootCausesAsync(investigationId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/capa/actions", async (
+    CreateCapaActionRequest request,
+    ClaimsPrincipal user,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await incident.CreateActionAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/capa/actions/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/capa/actions", async (
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await incident.ListActionsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/capa/actions/{actionId:guid}/progress", async (
+    Guid actionId,
+    ProgressCapaActionRequest request,
+    ClaimsPrincipal user,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    await incident.ProgressActionAsync(request with { ActionId = actionId }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Ok();
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/capa/actions/{actionId:guid}/verify", async (
+    Guid actionId,
+    VerifyCapaActionRequest request,
+    ClaimsPrincipal user,
+    IIncidentCapaService incident,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    await incident.VerifyActionAsync(request with { ActionId = actionId }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Ok();
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
