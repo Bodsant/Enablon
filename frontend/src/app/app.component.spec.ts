@@ -5,9 +5,10 @@ import { routes } from './app.routes';
 
 describe('application routing and shell', () => {
   beforeEach(async () => {
+    localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter(routes)]
+      providers: [provideRouter(routes)],
     }).compileComponents();
   });
 
@@ -21,21 +22,20 @@ describe('application routing and shell', () => {
     return { fixture, router };
   }
 
-  it('redirects the root route to architecture', async () => {
+  it('redirects the root route to login when unauthenticated', async () => {
     const { router } = await renderAt('/');
-    expect(router.url).toBe('/architecture');
+    expect(router.url).toBe('/login');
   });
 
-  it('renders the architecture route inside the application shell', async () => {
-    const { fixture, router } = await renderAt('/architecture');
-    expect(router.url).toBe('/architecture');
-    expect(fixture.nativeElement.querySelector('app-shell')).not.toBeNull();
+  it('redirects a protected route to login when unauthenticated', async () => {
+    const { router } = await renderAt('/dashboard');
+    expect(router.url).toBe('/login');
+  });
+
+  it('renders the login page at /login', async () => {
+    const { fixture, router } = await renderAt('/login');
+    expect(router.url).toBe('/login');
     expect(fixture.nativeElement.textContent).toContain('ENABLON EHSMS');
-    expect(fixture.nativeElement.textContent).toContain('No EHS business workflow');
-  });
-
-  it('redirects an unknown route to architecture', async () => {
-    const { router } = await renderAt('/not-a-route');
-    expect(router.url).toBe('/architecture');
+    expect(fixture.nativeElement.textContent).toContain('Sign in');
   });
 });
