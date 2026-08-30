@@ -507,3 +507,107 @@ CREATE TABLE IF NOT EXISTS capa.verifications (
 CREATE INDEX IF NOT EXISTS idx_capa_verifications_tenant
     ON capa.verifications (tenant_id);
 
+-- =====================================================================
+-- WorkControl module: inspection schema (Trello Sprint 15)
+-- =====================================================================
+CREATE SCHEMA IF NOT EXISTS inspection;
+
+CREATE TABLE IF NOT EXISTS inspection.inspections (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    record_id           uuid NOT NULL,
+    schedule_id         uuid,
+    template_version_id uuid,
+    inspector_member_id uuid NOT NULL,
+    planned_at          timestamptz,
+    started_at          timestamptz,
+    completed_at        timestamptz,
+    compliance_percentage numeric(5,2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inspections_tenant
+    ON inspection.inspections (tenant_id);
+
+CREATE TABLE IF NOT EXISTS inspection.findings (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    record_id          uuid NOT NULL,
+    inspection_id      uuid NOT NULL,
+    response_id        uuid,
+    classification     text,
+    severity_id        uuid,
+    description        text NOT NULL,
+    owner_member_id    uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_inspection_findings_tenant
+    ON inspection.findings (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_inspection_findings_inspection
+    ON inspection.findings (inspection_id);
+
+CREATE TABLE IF NOT EXISTS inspection.schedules (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    name            text NOT NULL,
+    frequency       text,
+    next_due_date   date,
+    status          text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_inspection_schedules_tenant
+    ON inspection.schedules (tenant_id);
+
+-- =====================================================================
+-- WorkControl module: audit schema
+-- =====================================================================
+CREATE SCHEMA IF NOT EXISTS audit;
+
+CREATE TABLE IF NOT EXISTS audit.programs (
+    id             uuid PRIMARY KEY,
+    tenant_id      uuid NOT NULL,
+    record_id      uuid NOT NULL,
+    name           text NOT NULL,
+    period_start   date,
+    period_end     date,
+    owner_member_id uuid NOT NULL,
+    status         text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_programs_tenant
+    ON audit.programs (tenant_id);
+
+CREATE TABLE IF NOT EXISTS audit.audits (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    record_id           uuid NOT NULL,
+    audit_program_id    uuid,
+    checklist_template_id uuid,
+    audit_type          text NOT NULL,
+    scope_text          text NOT NULL,
+    criteria_text       text,
+    lead_auditor_member_id uuid NOT NULL,
+    scheduled_start     date,
+    scheduled_end       date
+);
+
+CREATE INDEX IF NOT EXISTS idx_audits_tenant
+    ON audit.audits (tenant_id);
+
+CREATE TABLE IF NOT EXISTS audit.findings (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    record_id            uuid NOT NULL,
+    audit_id             uuid NOT NULL,
+    audit_response_id    uuid,
+    classification       text NOT NULL,
+    requirement_reference text,
+    description          text NOT NULL,
+    recommendation       text,
+    owner_member_id      uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_findings_tenant
+    ON audit.findings (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_audit_findings_audit
+    ON audit.findings (audit_id);
+

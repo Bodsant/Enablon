@@ -658,6 +658,7 @@
         "type": "Project",
         "dependencies": {
           "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
           "Ehsms.Modules.WorkControl.Application": "[1.0.0, )",
           "Ehsms.Modules.WorkControl.Contracts": "[1.0.0, )",
           "Ehsms.Modules.WorkControl.Domain": "[1.0.0, )",
