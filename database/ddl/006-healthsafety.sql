@@ -88,3 +88,34 @@ CREATE INDEX IF NOT EXISTS idx_chemical_storage_tenant
 CREATE INDEX IF NOT EXISTS idx_chemical_storage_inventory
     ON chemical.storage_inspections (chemical_inventory_id);
 
+-- ppe.catalog: master list of PPE items.
+CREATE TABLE IF NOT EXISTS ppe.catalog (
+    id                        uuid PRIMARY KEY,
+    tenant_id                 uuid NOT NULL,
+    code                      varchar(50) NOT NULL,
+    name                      varchar(200) NOT NULL,
+    ppe_category              varchar(60),
+    inspection_interval_days  integer,
+    replacement_interval_days integer,
+    status                    varchar(20) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_catalog_tenant
+    ON ppe.catalog (tenant_id);
+
+-- ppe.requirements: mandatory/suggested PPE per job or permit context.
+CREATE TABLE IF NOT EXISTS ppe.requirements (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    ppe_catalog_id   uuid NOT NULL,
+    source_record_id uuid,
+    permit_type_id   uuid,
+    is_mandatory     boolean NOT NULL DEFAULT false,
+    notes            text
+);
+
+CREATE INDEX IF NOT EXISTS idx_ppe_requirements_tenant
+    ON ppe.requirements (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ppe_requirements_catalog
+    ON ppe.requirements (ppe_catalog_id);
+
