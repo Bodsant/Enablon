@@ -573,6 +573,37 @@ app.MapGet("/api/v1/chemical/products/{productId:guid}/sds", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// Chemical exposure controls (HealthSafety module).
+app.MapPost("/api/v1/chemical/products/{productId:guid}/exposure-controls", async (
+    Guid productId,
+    CreateExposureControlRequest request,
+    IChemicalExposureControlService exposure,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var updated = request with { ChemicalProductId = productId };
+    var item = await exposure.AddAsync(updated, ct);
+    return Results.Created($"/api/v1/chemical/products/{productId}/exposure-controls/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/chemical/products/{productId:guid}/exposure-controls", async (
+    Guid productId,
+    IChemicalExposureControlService exposure,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await exposure.ListAsync(productId, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {

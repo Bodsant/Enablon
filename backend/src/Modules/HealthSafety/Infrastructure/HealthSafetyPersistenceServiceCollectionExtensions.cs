@@ -35,7 +35,10 @@ public static class HealthSafetyPersistenceServiceCollectionExtensions
         services.AddScoped<IChemicalCatalogService, ChemicalCatalogService>();
 
         // Chemical inventory & SDS records.
-        services.AddScoped<IChemicalInventoryService, ChemicalInventoryService>();
+                services.AddScoped<IChemicalInventoryService, ChemicalInventoryService>();
+
+                // Chemical exposure controls.
+                services.AddScoped<IChemicalExposureControlService, ChemicalExposureControlService>();
 
         return services;
     }

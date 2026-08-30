@@ -56,3 +56,18 @@ CREATE TABLE IF NOT EXISTS chemical.sds_revisions (
 CREATE INDEX IF NOT EXISTS idx_chemical_sds_product
     ON chemical.sds_revisions (chemical_product_id);
 
+-- chemical.exposure_controls: exposure control measures per product.
+CREATE TABLE IF NOT EXISTS chemical.exposure_controls (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    chemical_product_id uuid NOT NULL,
+    control_type       text NOT NULL,
+    description        text NOT NULL,
+    source_record_id   uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_chemical_exposure_tenant
+    ON chemical.exposure_controls (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_chemical_exposure_product
+    ON chemical.exposure_controls (chemical_product_id);
+
