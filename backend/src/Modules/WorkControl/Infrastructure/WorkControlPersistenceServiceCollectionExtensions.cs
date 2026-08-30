@@ -22,6 +22,9 @@ public static class WorkControlPersistenceServiceCollectionExtensions
         // Inspection & audit backend (Trello Sprint 15).
         services.AddScoped<IInspectionAuditService, InspectionAuditService>();
 
+        // PTW / JSA / LOTO backend (Trello Sprint 17).
+        services.AddScoped<IPtwJsaLotoService, PtwJsaLotoService>();
+
         return services;
     }
 }

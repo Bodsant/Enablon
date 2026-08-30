@@ -1448,6 +1448,172 @@ app.MapGet("/api/v1/inspections/findings", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// PTW / JSA / LOTO backend (WorkControl module, Trello Sprint 17).
+app.MapPost("/api/v1/work-requests", async (
+    CreateWorkRequestRequest request,
+    ClaimsPrincipal user,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateWorkRequestAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/work-requests/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/work-requests", async (
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListWorkRequestsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/jsas", async (
+    CreateJsaRequest request,
+    ClaimsPrincipal user,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateJsaAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/jsas/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/jsas/steps", async (
+    CreateJsaStepRequest request,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await svc.AddJsaStepAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/jsas/steps/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/jsas", async (
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListJsasAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/permits", async (
+    CreatePermitRequest request,
+    ClaimsPrincipal user,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreatePermitAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/permits/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/permits/approvals", async (
+    ApprovePermitRequest request,
+    ClaimsPrincipal user,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    await svc.ApprovePermitAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Ok();
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/permits/gas-tests", async (
+    RecordGasTestRequest request,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await svc.RecordGasTestAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/permits/gas-tests/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/permits", async (
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListPermitsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/isolation-plans", async (
+    CreateIsolationPlanRequest request,
+    ClaimsPrincipal user,
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateIsolationPlanAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/isolation-plans/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/isolation-plans", async (
+    IPtwJsaLotoService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListIsolationPlansAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
