@@ -355,3 +355,155 @@ CREATE INDEX IF NOT EXISTS idx_risk_reviews_tenant
 CREATE INDEX IF NOT EXISTS idx_risk_reviews_register
     ON risk.reviews (risk_register_id);
 
+-- =====================================================================
+-- SafetyRisk module: incident schema (Trello Sprint 13 - Incident & CAPA)
+-- =====================================================================
+CREATE SCHEMA IF NOT EXISTS incident;
+
+CREATE TABLE IF NOT EXISTS incident.incidents (
+    id                      uuid PRIMARY KEY,
+    tenant_id               uuid NOT NULL,
+    record_id               uuid NOT NULL,
+    incident_type_id        uuid NOT NULL,
+    severity_id             uuid NOT NULL,
+    occurred_at             timestamptz NOT NULL,
+    reported_at             timestamptz NOT NULL,
+    reported_by_member_id   uuid NOT NULL,
+    description             text NOT NULL,
+    immediate_action        text,
+    classification_status   text
+);
+
+CREATE INDEX IF NOT EXISTS idx_incidents_tenant
+    ON incident.incidents (tenant_id);
+
+CREATE TABLE IF NOT EXISTS incident.involved_people (
+    id                         uuid PRIMARY KEY,
+    tenant_id                  uuid NOT NULL,
+    incident_id                uuid NOT NULL,
+    person_id                  uuid,
+    external_person_name       text,
+    involvement_type           text NOT NULL,
+    injury_classification_id   uuid,
+    lost_work_days             integer
+);
+
+CREATE INDEX IF NOT EXISTS idx_involved_people_tenant
+    ON incident.involved_people (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_involved_people_incident
+    ON incident.involved_people (incident_id);
+
+CREATE TABLE IF NOT EXISTS incident.investigations (
+    id                          uuid PRIMARY KEY,
+    tenant_id                   uuid NOT NULL,
+    incident_id                 uuid NOT NULL,
+    lead_investigator_member_id uuid NOT NULL,
+    method                      text,
+    summary                     text,
+    status                      text NOT NULL,
+    started_at                  timestamptz,
+    completed_at                timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_investigations_tenant
+    ON incident.investigations (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_investigations_incident
+    ON incident.investigations (incident_id);
+
+CREATE TABLE IF NOT EXISTS incident.investigation_team (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    investigation_id  uuid NOT NULL,
+    tenant_member_id  uuid NOT NULL,
+    team_role         text
+);
+
+CREATE INDEX IF NOT EXISTS idx_investigation_team_tenant
+    ON incident.investigation_team (tenant_id);
+
+CREATE TABLE IF NOT EXISTS incident.root_causes (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    investigation_id uuid NOT NULL,
+    cause_type       text NOT NULL,
+    category_id      uuid,
+    description      text NOT NULL,
+    evidence_summary text
+);
+
+CREATE INDEX IF NOT EXISTS idx_root_causes_tenant
+    ON incident.root_causes (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_root_causes_investigation
+    ON incident.root_causes (investigation_id);
+
+CREATE TABLE IF NOT EXISTS incident.classification_reviews (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    incident_id           uuid NOT NULL,
+    reviewer_member_id    uuid NOT NULL,
+    classification_json   text NOT NULL,
+    decision              text NOT NULL,
+    reviewed_at           timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_classification_reviews_tenant
+    ON incident.classification_reviews (tenant_id);
+
+-- =====================================================================
+-- SafetyRisk module: capa schema
+-- =====================================================================
+CREATE SCHEMA IF NOT EXISTS capa;
+
+CREATE TABLE IF NOT EXISTS capa.actions (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    record_id            uuid NOT NULL,
+    action_type          text NOT NULL,
+    description          text NOT NULL,
+    owner_member_id      uuid NOT NULL,
+    priority             text NOT NULL,
+    due_date             date NOT NULL,
+    progress_percentage  smallint NOT NULL,
+    verification_required boolean NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_capa_actions_tenant
+    ON capa.actions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS capa.sources (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    action_id        uuid NOT NULL,
+    source_record_id uuid NOT NULL,
+    source_role      text
+);
+
+CREATE INDEX IF NOT EXISTS idx_capa_sources_tenant
+    ON capa.sources (tenant_id);
+
+CREATE TABLE IF NOT EXISTS capa.updates (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    action_id             uuid NOT NULL,
+    progress_percentage   smallint NOT NULL,
+    note                  text NOT NULL,
+    updated_by_member_id  uuid NOT NULL,
+    updated_at            timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_capa_updates_tenant
+    ON capa.updates (tenant_id);
+
+CREATE TABLE IF NOT EXISTS capa.verifications (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    action_id         uuid NOT NULL,
+    verifier_member_id uuid NOT NULL,
+    result            text NOT NULL,
+    comment           text,
+    verified_at       timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_capa_verifications_tenant
+    ON capa.verifications (tenant_id);
+
