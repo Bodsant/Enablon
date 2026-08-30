@@ -55,6 +55,31 @@ public sealed class PlatformRecordFlowTests : IClassFixture<WebApplicationFactor
         Assert.StartsWith("HSE-", created.RecordNumber);
     }
 
+    [Fact]
+    public async Task List_records_returns_created_record_for_tenant()
+    {
+        var login = await _client.PostAsJsonAsync("/api/v1/auth/login",
+            new { email = "admin@ehsms.local", password = "EhsmsDev!123" });
+        var payload = await login.Content.ReadFromJsonAsync<LoginPayload>();
+        _client.DefaultRequestHeaders.Authorization = new("Bearer", payload!.AccessToken);
+
+        var create = await _client.PostAsJsonAsync("/api/v1/platform/records", new
+        {
+            moduleCode = "HSE",
+            recordType = "Incident",
+            title = "List-me record",
+            dataClassificationId = "00000000-0000-0000-0000-000000000001",
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+
+        var list = await _client.GetAsync("/api/v1/platform/records");
+        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
+        var createdPayload = await create.Content.ReadFromJsonAsync<CreateRecordPayload>();
+        var items = await list.Content.ReadFromJsonAsync<List<RecordListItemPayload>>();
+        Assert.NotNull(items);
+        Assert.Contains(items!, i => i.RecordNumber == createdPayload!.RecordNumber);
+    }
+
     private static string Base64UrlDecode(string input)
     {
         var s = input.Replace('-', '+').Replace('_', '/');
@@ -68,4 +93,5 @@ public sealed class PlatformRecordFlowTests : IClassFixture<WebApplicationFactor
 
     public sealed record LoginPayload(string AccessToken, string TokenType);
     public sealed record CreateRecordPayload(Guid Id, string RecordNumber, string Status);
+    public sealed record RecordListItemPayload(Guid Id, string RecordNumber, string ModuleCode, string RecordType, string? Title, string Status, DateTimeOffset CreatedAt);
 }

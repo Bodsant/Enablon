@@ -252,6 +252,69 @@ app.MapGet("/api/v1/auth/me", (System.Security.Claims.ClaimsPrincipal user, ITen
 }).RequireAuthorization();
 
 // Platform: create a record through the app service (number sequence + audit + outbox).
+// Platform records: list for admin views (tenant-scoped via middleware).
+app.MapGet("/api/v1/platform/records", async (
+    Ehsms.Modules.Platform.Infrastructure.Persistence.PlatformDbContext db,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var tenantId = tenantContext.CurrentTenantId;
+    if (tenantId is null)
+        return Results.Json(new { error = "Tenant context could not be resolved." }, statusCode: 400);
+
+    var records = await db.Records
+        .Where(r => r.TenantId == tenantId)
+        .OrderByDescending(r => r.CreatedAt)
+        .Take(100)
+        .Select(r => new
+        {
+            r.Id,
+            r.RecordNumber,
+            r.ModuleCode,
+            r.RecordType,
+            r.Title,
+            r.Status,
+            r.CreatedAt,
+            CreatedByMemberId = r.CreatedByMemberId
+        })
+        .ToListAsync(ct);
+
+    return Results.Ok(records);
+}).RequireAuthorization();
+
+// Platform records: detail for admin views.
+app.MapGet("/api/v1/platform/records/{recordId:guid}", async (
+    Guid recordId,
+    Ehsms.Modules.Platform.Infrastructure.Persistence.PlatformDbContext db,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    var tenantId = tenantContext.CurrentTenantId;
+    if (tenantId is null)
+        return Results.Json(new { error = "Tenant context could not be resolved." }, statusCode: 400);
+
+    var record = await db.Records
+        .Where(r => r.Id == recordId && r.TenantId == tenantId)
+        .Select(r => new
+                {
+                    r.Id,
+                    r.RecordNumber,
+                    r.ModuleCode,
+                    r.RecordType,
+                    r.Title,
+                    r.Status,
+                    r.DataClassificationId,
+                    r.CreatedAt,
+                    CreatedByMemberId = r.CreatedByMemberId
+                })
+                .FirstOrDefaultAsync(ct);
+
+    return record is null
+        ? Results.NotFound(new { error = "Record not found." })
+        : Results.Ok(record);
+}).RequireAuthorization();
+
+// Platform records: create.
 app.MapPost("/api/v1/platform/records", async (
     CreateRecordRequest request,
     ClaimsPrincipal user,
