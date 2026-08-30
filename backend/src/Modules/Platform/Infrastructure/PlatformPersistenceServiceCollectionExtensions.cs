@@ -1,5 +1,6 @@
 using Ehsms.BuildingBlocks.Tenancy;
 using Ehsms.Modules.Platform.Application;
+using Ehsms.Modules.Platform.Contracts;
 using Ehsms.Modules.Platform.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

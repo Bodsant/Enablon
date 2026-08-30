@@ -486,10 +486,12 @@
       "ehsms.modules.healthsafety.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "EFCore.NamingConventions": "[8.0.3, )",
           "Ehsms.BuildingBlocks": "[1.0.0, )",
           "Ehsms.Modules.HealthSafety.Application": "[1.0.0, )",
           "Ehsms.Modules.HealthSafety.Contracts": "[1.0.0, )",
           "Ehsms.Modules.HealthSafety.Domain": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },
