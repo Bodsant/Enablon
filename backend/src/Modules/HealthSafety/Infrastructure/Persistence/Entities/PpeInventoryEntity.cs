@@ -11,6 +11,4 @@ public sealed class PpeInventoryEntity
     public int? QuantityOnHand { get; set; } = null;
     public string? Condition { get; set; } = null;
     public string Status { get; set; } = string.Empty;
-
-    public ICollection<PpeInspectionEntity> PpeInspections { get; set; } = new List<PpeInspectionEntity>();
-}
+    }
