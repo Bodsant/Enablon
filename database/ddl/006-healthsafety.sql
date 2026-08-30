@@ -71,3 +71,20 @@ CREATE INDEX IF NOT EXISTS idx_chemical_exposure_tenant
 CREATE INDEX IF NOT EXISTS idx_chemical_exposure_product
     ON chemical.exposure_controls (chemical_product_id);
 
+-- chemical.storage_inspections: inspection records per inventory line.
+CREATE TABLE IF NOT EXISTS chemical.storage_inspections (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    record_id             uuid NOT NULL,
+    chemical_inventory_id uuid NOT NULL,
+    inspected_by_member_id uuid NOT NULL,
+    inspected_at          timestamptz NOT NULL,
+    result                text NOT NULL,
+    next_review_date      date
+);
+
+CREATE INDEX IF NOT EXISTS idx_chemical_storage_tenant
+    ON chemical.storage_inspections (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_chemical_storage_inventory
+    ON chemical.storage_inspections (chemical_inventory_id);
+
