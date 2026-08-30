@@ -611,3 +611,115 @@ CREATE INDEX IF NOT EXISTS idx_audit_findings_tenant
 CREATE INDEX IF NOT EXISTS idx_audit_findings_audit
     ON audit.findings (audit_id);
 
+-- =====================================================================
+-- WorkControl module: cow schema (PTW / JSA / LOTO, Trello Sprint 17)
+-- =====================================================================
+CREATE SCHEMA IF NOT EXISTS cow;
+
+CREATE TABLE IF NOT EXISTS cow.work_requests (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    record_id            uuid NOT NULL,
+    requester_member_id  uuid NOT NULL,
+    work_description     text NOT NULL,
+    contractor_company_id uuid,
+    planned_start        timestamptz,
+    planned_end          timestamptz,
+    work_type            text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_work_requests_tenant
+    ON cow.work_requests (tenant_id);
+
+CREATE TABLE IF NOT EXISTS cow.jsas (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    record_id             uuid NOT NULL,
+    work_request_id       uuid NOT NULL,
+    template_version_id   uuid,
+    prepared_by_member_id uuid NOT NULL,
+    status                text NOT NULL,
+    overall_residual_risk text
+);
+
+CREATE INDEX IF NOT EXISTS idx_jsas_tenant
+    ON cow.jsas (tenant_id);
+
+CREATE TABLE IF NOT EXISTS cow.jsa_steps (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    jsa_id          uuid NOT NULL,
+    sequence_number int NOT NULL,
+    work_step       text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_jsa_steps_tenant
+    ON cow.jsa_steps (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_jsa_steps_jsa
+    ON cow.jsa_steps (jsa_id);
+
+CREATE TABLE IF NOT EXISTS cow.permits (
+    id                     uuid PRIMARY KEY,
+    tenant_id              uuid NOT NULL,
+    record_id              uuid NOT NULL,
+    work_request_id        uuid NOT NULL,
+    jsa_id                 uuid,
+    permit_type_version_id uuid NOT NULL,
+    requester_member_id    uuid NOT NULL,
+    executor_person_id     uuid,
+    contractor_company_id  uuid,
+    valid_from             timestamptz,
+    valid_until            timestamptz,
+    suspension_reason      text,
+    extension_count        int NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_permits_tenant
+    ON cow.permits (tenant_id);
+
+CREATE TABLE IF NOT EXISTS cow.permit_approvals (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    permit_id          uuid NOT NULL,
+    workflow_task_id   uuid NOT NULL,
+    approval_level     int NOT NULL,
+    decision           text,
+    approver_member_id uuid,
+    decided_at         timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_permit_approvals_tenant
+    ON cow.permit_approvals (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_permit_approvals_permit
+    ON cow.permit_approvals (permit_id);
+
+CREATE TABLE IF NOT EXISTS cow.gas_tests (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    permit_id          uuid NOT NULL,
+    test_type          text NOT NULL,
+    tested_at          timestamptz NOT NULL,
+    tested_by_person_id uuid,
+    oxygen_pct         numeric(5,2),
+    lel_pct            numeric(5,2),
+    toxic_gas_json     text,
+    result             text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_gas_tests_tenant
+    ON cow.gas_tests (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_gas_tests_permit
+    ON cow.gas_tests (permit_id);
+
+CREATE TABLE IF NOT EXISTS cow.isolation_plans (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    record_id             uuid NOT NULL,
+    permit_id             uuid NOT NULL,
+    prepared_by_member_id uuid NOT NULL,
+    status                text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_isolation_plans_tenant
+    ON cow.isolation_plans (tenant_id);
+
