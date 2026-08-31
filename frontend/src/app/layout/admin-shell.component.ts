@@ -17,6 +17,7 @@ import { AuthService } from '../core/auth.service';
           <a routerLink="/risk" routerLinkActive="active">Hazard &amp; Risk</a>
           <a routerLink="/incident" routerLinkActive="active">Incident &amp; CAPA</a>
           <a routerLink="/inspection" routerLinkActive="active">Inspection &amp; Audit</a>
+          <a routerLink="/ptw" routerLinkActive="active">PTW / JSA / LOTO</a>
           <a routerLink="/architecture" routerLinkActive="active">Architecture</a>
         </nav>
         <div class="foot">
