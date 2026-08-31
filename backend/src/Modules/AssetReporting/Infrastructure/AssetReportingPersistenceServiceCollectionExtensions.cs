@@ -26,6 +26,9 @@ public static class AssetReportingPersistenceServiceCollectionExtensions
         // Reporting & KPI backend (Trello Sprint 27 R2).
         services.AddScoped<IReportingKpiService, ReportingKpiService>();
 
+        // Integration & external backend (Trello Sprint 28 R2).
+        services.AddScoped<IIntegrationService, IntegrationService>();
+
         return services;
     }
 }
