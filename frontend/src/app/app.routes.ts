@@ -33,6 +33,10 @@ export const routes: Routes = [
         path: 'risk',
         loadComponent: () => import('./features/risk/risk-page.component').then(m => m.RiskPageComponent),
       },
+      {
+        path: 'incident',
+        loadComponent: () => import('./features/incident/incident-page.component').then(m => m.IncidentPageComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
