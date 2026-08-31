@@ -1792,6 +1792,147 @@ app.MapGet("/api/v1/contractor/documents", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// Training & Competency (ComplianceContracts module, Trello Sprint 20 R2).
+app.MapPost("/api/v1/courses", async (
+    CreateCourseRequest request,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await svc.CreateCourseAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/courses/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/courses", async (
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListCoursesAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/training-sessions", async (
+    CreateTrainingSessionRequest request,
+    ClaimsPrincipal user,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateTrainingSessionAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/training-sessions/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/training-sessions", async (
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListTrainingSessionsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/training-sessions/participants", async (
+    AddSessionParticipantRequest request,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var id = await svc.AddSessionParticipantAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/training-sessions/participants/{id}", new { id });
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/training-sessions/{sessionId}/participants", async (
+    Guid sessionId,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListSessionParticipantsAsync(sessionId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/competencies", async (
+    CreateCompetencyRequest request,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await svc.CreateCompetencyAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/competencies/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/competencies", async (
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListCompetenciesAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/worker-competencies", async (
+    AssignWorkerCompetencyRequest request,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await svc.AssignWorkerCompetencyAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/worker-competencies/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/worker-competencies", async (
+    Guid personId,
+    ITrainingService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListWorkerCompetenciesAsync(personId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {

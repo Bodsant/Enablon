@@ -786,3 +786,74 @@ CREATE TABLE IF NOT EXISTS contractor.documents (
 
 CREATE INDEX IF NOT EXISTS idx_contractor_documents_tenant
     ON contractor.documents (tenant_id);
+
+-- ====================== Training & Competency ======================
+-- Trello Sprint 20 (R2). Idempotent; no cross-schema FKs.
+CREATE SCHEMA IF NOT EXISTS training;
+
+CREATE TABLE IF NOT EXISTS training.courses (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    code            text NOT NULL,
+    name            text NOT NULL,
+    validity_months integer,
+    provider_type   text,
+    status          text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_courses_tenant
+    ON training.courses (tenant_id);
+
+CREATE TABLE IF NOT EXISTS training.sessions (
+    id            uuid PRIMARY KEY,
+    tenant_id     uuid NOT NULL,
+    record_id     uuid NOT NULL,
+    course_id     uuid NOT NULL,
+    provider_name text,
+    starts_at     timestamptz,
+    ends_at       timestamptz,
+    capacity      integer,
+    status        text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_tenant
+    ON training.sessions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS training.session_participants (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    training_session_id uuid NOT NULL,
+    person_id          uuid NOT NULL,
+    attendance_status  text,
+    assessment_score   numeric(6,2),
+    result             text
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_participants_tenant
+    ON training.session_participants (tenant_id);
+
+CREATE TABLE IF NOT EXISTS training.competencies (
+    id          uuid PRIMARY KEY,
+    tenant_id   uuid NOT NULL,
+    code        text NOT NULL,
+    name        text NOT NULL,
+    description text,
+    status      text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_competencies_tenant
+    ON training.competencies (tenant_id);
+
+CREATE TABLE IF NOT EXISTS training.worker_competencies (
+    id             uuid PRIMARY KEY,
+    tenant_id      uuid NOT NULL,
+    person_id      uuid NOT NULL,
+    competency_id  uuid NOT NULL,
+    level          text,
+    status         text NOT NULL,
+    valid_from     date,
+    valid_until    date
+);
+
+CREATE INDEX IF NOT EXISTS idx_worker_competencies_tenant
+    ON training.worker_competencies (tenant_id);
