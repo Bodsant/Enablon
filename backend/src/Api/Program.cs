@@ -2721,6 +2721,104 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 var items = await ar.ListAsync(tenantContext.CurrentTenantId.Value, ct);
                                                 return Results.Ok(items);
                                             }).RequireAuthorization();
+
+                                            // RBAC admin (Identity module, Trello Sprint 31 R3).
+                                            app.MapPost("/api/v1/identities/roles", async (
+                                                CreateRoleRequest request,
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await rbac.CreateRoleAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/identities/roles/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/identities/roles", async (
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await rbac.ListRolesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/identities/permissions", async (
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await rbac.ListPermissionsAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/identities/roles/{roleId:guid}/permissions", async (
+                                                Guid roleId,
+                                                AttachPermissionRequest request,
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await rbac.AttachPermissionAsync(roleId, request.PermissionId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(dto);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/identities/members/{memberId:guid}/roles", async (
+                                                Guid memberId,
+                                                AssignRoleRequest request,
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await rbac.AssignRoleAsync(memberId, request.RoleId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(dto);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/identities/members", async (
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await rbac.ListMembersAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/identities/permissions", async (
+                                                CreatePermissionRequest request,
+                                                IRbacService rbac,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await rbac.CreatePermissionAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/identities/permissions/{dto.Id}", dto);
+                                            }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
