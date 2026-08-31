@@ -1236,3 +1236,12 @@ CREATE TABLE IF NOT EXISTS integration.reconciliations (
 
 CREATE INDEX IF NOT EXISTS idx_integration_reconciliations_tenant
     ON integration.reconciliations (tenant_id);
+-- ====================== R3 Security Hardening fixes ======================
+-- Drop orphaned cross-schema FKs on iam.access_scopes (R3 Sprint 32): the module does
+-- not model org.company/BU/site/department/location, so 001's FKs to those tables would
+-- reject valid inserts (23503) in a fresh CI DB. 006 applies idempotently on top of 001.
+ALTER TABLE iam.access_scopes DROP CONSTRAINT IF EXISTS fk_access_scopes_company;
+ALTER TABLE iam.access_scopes DROP CONSTRAINT IF EXISTS fk_access_scopes_business_unit;
+ALTER TABLE iam.access_scopes DROP CONSTRAINT IF EXISTS fk_access_scopes_site;
+ALTER TABLE iam.access_scopes DROP CONSTRAINT IF EXISTS fk_access_scopes_department;
+ALTER TABLE iam.access_scopes DROP CONSTRAINT IF EXISTS fk_access_scopes_location;
