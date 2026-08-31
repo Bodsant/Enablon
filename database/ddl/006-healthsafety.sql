@@ -1156,4 +1156,83 @@ CREATE TABLE IF NOT EXISTS reporting.kpi_versions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_kpi_versions_tenant
-    ON reporting.kpi_versions (tenant_id);
+    ON reporting.kpi_versions (tenant_id);-- ====================== Integration & External ======================
+-- Trello Sprint 28 (R2). AssetReporting 'integration' schema. Idempotent; no cross-schema FKs.
+CREATE SCHEMA IF NOT EXISTS integration;
+
+CREATE TABLE IF NOT EXISTS integration.interfaces (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    code               text NOT NULL,
+    name               text NOT NULL,
+    source_system      text NOT NULL,
+    target_system      text NOT NULL,
+    integration_method text NOT NULL,
+    authentication_type text,
+    owner_member_id    uuid,
+    status             text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_interfaces_tenant
+    ON integration.interfaces (tenant_id);
+
+CREATE TABLE IF NOT EXISTS integration.data_mappings (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    interface_id      uuid NOT NULL,
+    version_number    integer NOT NULL,
+    source_schema_json text,
+    target_schema_json text,
+    mapping_rules_json text,
+    effective_from    timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_data_mappings_tenant
+    ON integration.data_mappings (tenant_id);
+
+CREATE TABLE IF NOT EXISTS integration.runs (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    interface_id     uuid NOT NULL,
+    mapping_id       uuid,
+    correlation_id   text,
+    started_at       timestamptz NOT NULL,
+    completed_at     timestamptz,
+    status           text NOT NULL,
+    received_count   bigint,
+    success_count    bigint,
+    error_count      bigint
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_runs_tenant
+    ON integration.runs (tenant_id);
+
+CREATE TABLE IF NOT EXISTS integration.messages (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    integration_run_id uuid NOT NULL,
+    external_key      text,
+    payload_hash      text,
+    processing_status text NOT NULL,
+    error_code        text,
+    error_message     text,
+    retry_count       integer NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_messages_tenant
+    ON integration.messages (tenant_id);
+
+CREATE TABLE IF NOT EXISTS integration.reconciliations (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    integration_run_id uuid NOT NULL,
+    source_count       bigint,
+    target_count       bigint,
+    matched_count      bigint,
+    unmatched_count    bigint,
+    status             text NOT NULL,
+    approved_by_member_id uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_reconciliations_tenant
+    ON integration.reconciliations (tenant_id);

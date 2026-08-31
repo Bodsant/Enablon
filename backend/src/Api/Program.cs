@@ -2521,10 +2521,150 @@ app.MapGet("/api/v1/worker-competencies", async (
                             return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
                         }
                         var items = await rpt.ListKpiVersionsAsync(kpiDefinitionId, tenantContext.CurrentTenantId.Value, ct);
-                        return Results.Ok(items);
-                    }).RequireAuthorization();
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
 
-                    // Development seed: subscription plans and their current versions (idempotent).
+                                            // Integration & external (AssetReporting module, Trello Sprint 28 R2).
+                                            app.MapPost("/api/v1/integration/interfaces", async (
+                                                CreateIntegrationInterfaceRequest request,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var item = await intSvc.CreateInterfaceAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/integration/interfaces/{item.Id}", item);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/integration/interfaces", async (
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await intSvc.ListInterfacesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/integration/data-mappings", async (
+                                                CreateIntegrationDataMappingRequest request,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var item = await intSvc.CreateDataMappingAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/integration/data-mappings/{item.Id}", item);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/integration/data-mappings", async (
+                                                Guid interfaceId,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await intSvc.ListDataMappingsAsync(interfaceId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/integration/runs", async (
+                                                CreateIntegrationRunRequest request,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var item = await intSvc.CreateRunAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/integration/runs/{item.Id}", item);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/integration/runs", async (
+                                                Guid interfaceId,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await intSvc.ListRunsAsync(interfaceId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/integration/messages", async (
+                                                CreateIntegrationMessageRequest request,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var item = await intSvc.CreateMessageAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/integration/messages/{item.Id}", item);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/integration/messages", async (
+                                                Guid integrationRunId,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await intSvc.ListMessagesAsync(integrationRunId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            app.MapPost("/api/v1/integration/reconciliations", async (
+                                                CreateIntegrationReconciliationRequest request,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var item = await intSvc.CreateReconciliationAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/integration/reconciliations/{item.Id}", item);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/integration/reconciliations", async (
+                                                Guid integrationRunId,
+                                                IIntegrationService intSvc,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await intSvc.ListReconciliationsAsync(integrationRunId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
+                                            // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
     using var seedScope = app.Services.CreateScope();
