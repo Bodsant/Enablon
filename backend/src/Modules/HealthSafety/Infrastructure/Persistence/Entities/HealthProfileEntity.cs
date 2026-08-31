@@ -8,6 +8,4 @@ public sealed class HealthProfileEntity
     public Guid PersonId { get; set; } = Guid.Empty;
     public string? RestrictedIdentifier { get; set; } = null;
     public Guid DataClassificationId { get; set; } = Guid.Empty;
-
-    public ICollection<FitnessStatusEntity> FitnessStatusRecords { get; set; } = new List<FitnessStatusEntity>();
-}
+    }

@@ -1007,6 +1007,147 @@ app.MapGet("/api/v1/environment/measurements", async (
     return Results.Ok(items);
 }).RequireAuthorization();
 
+// Occupational health (HealthSafety module, Trello Sprint 22 R2).
+app.MapPost("/api/v1/health/profiles", async (
+    CreateHealthProfileRequest request,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await oh.CreateHealthProfileAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/health/profiles/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/health/profiles", async (
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await oh.ListHealthProfilesAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/health/fitness-statuses", async (
+    CreateFitnessStatusRequest request,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await oh.CreateFitnessStatusAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/health/fitness-statuses/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/health/fitness-statuses", async (
+    Guid healthProfileId,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await oh.ListFitnessStatusesAsync(healthProfileId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/health/surveillance-programs", async (
+    CreateSurveillanceProgramRequest request,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await oh.CreateSurveillanceProgramAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/health/surveillance-programs/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/health/surveillance-programs", async (
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await oh.ListSurveillanceProgramsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/health/surveillance-events", async (
+    CreateSurveillanceEventRequest request,
+    ClaimsPrincipal user,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await oh.CreateSurveillanceEventAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/health/surveillance-events/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/health/surveillance-events", async (
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await oh.ListSurveillanceEventsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/health/followups", async (
+    CreateHealthFollowupRequest request,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await oh.CreateHealthFollowupAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/health/followups/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/health/followups", async (
+    Guid surveillanceEventId,
+    IOccupationalHealthService oh,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await oh.ListHealthFollowupsAsync(surveillanceEventId, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
 // Hazard & risk backend (SafetyRisk module, Trello Sprint 11).
 app.MapPost("/api/v1/risk/hazards", async (
     CreateHazardRequest request,
