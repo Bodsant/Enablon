@@ -723,3 +723,66 @@ CREATE TABLE IF NOT EXISTS cow.isolation_plans (
 CREATE INDEX IF NOT EXISTS idx_isolation_plans_tenant
     ON cow.isolation_plans (tenant_id);
 
+
+-- ====================== Contractor / Contract Management ======================
+-- Trello Sprint 19 (R2). Idempotent; no cross-schema FKs.
+CREATE SCHEMA IF NOT EXISTS contractor;
+
+CREATE TABLE IF NOT EXISTS contractor.companies (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    record_id           uuid NOT NULL,
+    vendor_code         text,
+    name                text NOT NULL,
+    tax_identifier      text,
+    qualification_status text,
+    eligibility_status  text,
+    status              text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_contractor_companies_tenant
+    ON contractor.companies (tenant_id);
+
+CREATE TABLE IF NOT EXISTS contractor.contracts (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    contractor_company_id uuid NOT NULL,
+    contract_number       text,
+    start_date            date,
+    end_date              date,
+    contract_status       text,
+    procurement_source_id text
+);
+
+CREATE INDEX IF NOT EXISTS idx_contractor_contracts_tenant
+    ON contractor.contracts (tenant_id);
+
+CREATE TABLE IF NOT EXISTS contractor.workers (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    person_id             uuid NOT NULL,
+    contractor_company_id uuid NOT NULL,
+    worker_number         text,
+    position_name         text,
+    eligibility_status    text,
+    status                text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_contractor_workers_tenant
+    ON contractor.workers (tenant_id);
+
+CREATE TABLE IF NOT EXISTS contractor.documents (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    contractor_company_id uuid,
+    contractor_worker_id  uuid,
+    document_type         text NOT NULL,
+    document_number       text,
+    file_object_id        uuid NOT NULL,
+    issue_date            date,
+    expiry_date           date,
+    verification_status   text
+);
+
+CREATE INDEX IF NOT EXISTS idx_contractor_documents_tenant
+    ON contractor.documents (tenant_id);

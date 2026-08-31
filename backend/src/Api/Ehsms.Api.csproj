@@ -8,6 +8,7 @@
     <ProjectReference Include="../Modules/HealthSafety/Infrastructure/Ehsms.Modules.HealthSafety.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/SafetyRisk/Infrastructure/Ehsms.Modules.SafetyRisk.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/WorkControl/Infrastructure/Ehsms.Modules.WorkControl.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/ComplianceContracts/Infrastructure/Ehsms.Modules.ComplianceContracts.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
       <PackageReference Include="Swashbuckle.AspNetCore" />
