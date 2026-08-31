@@ -21,6 +21,9 @@ public static class ComplianceContractsPersistenceServiceCollectionExtensions
         // Contractor & contract management backend (Trello Sprint 19 R2).
         services.AddScoped<IContractService, ContractService>();
 
+        // Training & competency backend (Trello Sprint 20 R2).
+        services.AddScoped<ITrainingService, TrainingService>();
+
         return services;
     }
 }
