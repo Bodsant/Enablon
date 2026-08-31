@@ -52,6 +52,8 @@ public static class PlatformPersistenceServiceCollectionExtensions
         services.AddScoped<IUploadQuotaValidator, GrantAllUploadQuotaValidator>();
         services.AddScoped<IObjectStorage, LocalFileObjectStorage>();
         services.AddScoped<IFileService, FileService>();
+        // Audit trail read API (Trello Sprint 29 R3). Writes stay internal (AuditLogWriter).
+        services.AddScoped<IAuditTrailService, AuditTrailService>();
         services.AddHostedService<PurgeWorker>();
 
         return services;
