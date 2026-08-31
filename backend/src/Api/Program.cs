@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Ehsms.Api.Authentication;
 using Ehsms.Api.HealthChecks;
+using Ehsms.Api.Middleware;
 using Ehsms.BuildingBlocks.Tenancy;
 using Ehsms.Modules.Identity.Contracts;
 using Ehsms.Modules.Identity.Infrastructure;
@@ -144,6 +145,7 @@ app.Use(async (context, next) =>
 // (fail-closed: no tenant claim => no tenant => tenant-scoped queries return empty).
 app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseSecurityHeaders();
 app.UseAuthorization();
 
 app.MapGet("/api/v1/architecture/info", () => Results.Ok(new
@@ -2818,6 +2820,197 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 }
                                                 var dto = await rbac.CreatePermissionAsync(request, tenantContext.CurrentTenantId.Value, ct);
                                                 return Results.Created($"/api/v1/identities/permissions/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+// Access scope & temporary grant (Identity module, Trello Sprint 32 R3).
+                                            app.MapPost("/api/v1/identities/scopes", async (
+                                                CreateAccessScopeRequest request,
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await ascScope.CreateScopeAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/identities/scopes/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/identities/scopes", async (
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ascScope.ListScopesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/members/{memberId:guid}/scopes", async (
+                                                Guid memberId,
+                                                GrantScopeRequest request,
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await ascScope.GrantScopeToMemberAsync(memberId, request.AccessScopeId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/identities/members/{memberId:guid}/scopes", async (
+                                                Guid memberId,
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ascScope.ListMemberScopesAsync(tenantContext.CurrentTenantId.Value, memberId, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/temporary-grants", async (
+                                                CreateTemporaryAccessGrantRequest request,
+                                                IAccessScopeService ascScope,
+                                                ClaimsPrincipal user,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                IdentityDbContext identityDb,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var activeMemberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+                                                if (activeMemberId is null) return Results.Json(new { error = "No active member" }, statusCode: 403);
+                                                var dto = await ascScope.CreateGrantAsync(request, tenantContext.CurrentTenantId.Value, activeMemberId.Value, ct);
+                                                return Results.Created($"/api/v1/identities/temporary-grants/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/identities/temporary-grants", async (
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ascScope.ListGrantsAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+// Session / refresh-token management (Identity module, Trello Sprint 33 R3).
+                                            app.MapGet("/api/v1/identities/sessions", async (
+                                                ISessionService sess,
+                                                ClaimsPrincipal user,
+                                                CancellationToken ct) =>
+                                            {
+                                                var sub = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                if (!Guid.TryParse(sub, out var userId)) return Results.Json(new { error = "Invalid user identity" }, statusCode: 401);
+                                                var items = await sess.ListSessionsAsync(userId, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/sessions/{tokenId:guid}/revoke", async (
+                                                Guid tokenId,
+                                                ISessionService sess,
+                                                ClaimsPrincipal user,
+                                                CancellationToken ct) =>
+                                            {
+                                                var sub = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                if (!Guid.TryParse(sub, out var userId)) return Results.Json(new { error = "Invalid user identity" }, statusCode: 401);
+                                                var ok = await sess.RevokeSessionAsync(userId, tokenId, ct);
+                                                return ok ? Results.NoContent() : Results.NotFound();
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/sessions/revoke-all", async (
+                                                ISessionService sess,
+                                                ClaimsPrincipal user,
+                                                CancellationToken ct) =>
+                                            {
+                                                var sub = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                if (!Guid.TryParse(sub, out var userId)) return Results.Json(new { error = "Invalid user identity" }, statusCode: 401);
+                                                var count = await sess.RevokeAllSessionsAsync(userId, ct);
+                                                return Results.Ok(new { revoked = count });
+                                            }).RequireAuthorization();
+// Data classification & sensitive data (Platform module, Trello Sprint 34 R3).
+                                            app.MapGet("/api/v1/data-classifications", async (
+                                                IDataClassificationService dataCls,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await dataCls.ListClassificationsAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/data-classifications", async (
+                                                CreateDataClassificationRequest request,
+                                                IDataClassificationService dataCls,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await dataCls.CreateClassificationAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/data-classifications/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/data-classifications/check", async (
+                                                CheckClassificationRequest request,
+                                                IDataClassificationService dataCls,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await dataCls.CheckAsync(request.ClassificationId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(dto);
+                                            }).RequireAuthorization();
+// Retention & purge (Platform module, Trello Sprint 35 R3).
+                                            app.MapGet("/api/v1/retention-policies", async (
+                                                IRetentionService ret,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ret.ListPoliciesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/retention-policies", async (
+                                                CreateRetentionPolicyRequest request,
+                                                IRetentionService ret,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await ret.CreatePolicyAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/retention-policies/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/retention-policies/purge-candidates", async (
+                                                IRetentionService ret,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ret.GetPurgeCandidatesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
                                             }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
