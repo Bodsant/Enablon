@@ -436,6 +436,7 @@
           "Ehsms.Modules.AssetReporting.Application": "[1.0.0, )",
           "Ehsms.Modules.AssetReporting.Contracts": "[1.0.0, )",
           "Ehsms.Modules.AssetReporting.Domain": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },

@@ -536,6 +536,7 @@
         "type": "Project",
         "dependencies": {
           "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.AssetReporting.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.ComplianceContracts.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.HealthSafety.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.Identity.Infrastructure": "[1.0.0, )",
@@ -552,6 +553,34 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.EntityFrameworkCore": "[8.0.11, )"
+        }
+      },
+      "ehsms.modules.assetreporting.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.AssetReporting.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.AssetReporting.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.assetreporting.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.assetreporting.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.assetreporting.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.AssetReporting.Application": "[1.0.0, )",
+          "Ehsms.Modules.AssetReporting.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.AssetReporting.Domain": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },
       "ehsms.modules.compliancecontracts.application": {

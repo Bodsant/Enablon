@@ -14,6 +14,8 @@ using Ehsms.Modules.WorkControl.Contracts;
 using Ehsms.Modules.WorkControl.Infrastructure;
 using Ehsms.Modules.ComplianceContracts.Contracts;
 using Ehsms.Modules.ComplianceContracts.Infrastructure;
+using Ehsms.Modules.AssetReporting.Contracts;
+using Ehsms.Modules.AssetReporting.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Application;
@@ -54,6 +56,7 @@ builder.Services.AddHealthSafetyPersistence(connectionString);
 builder.Services.AddSafetyRiskPersistence(connectionString);
 builder.Services.AddWorkControlPersistence(connectionString);
 builder.Services.AddComplianceContractsPersistence(connectionString);
+builder.Services.AddAssetReportingPersistence(connectionString);
 
 // Health checks: the process self-check (live) plus real database reachability (ready).
 builder.Services.AddHealthChecks()
@@ -2190,10 +2193,189 @@ app.MapGet("/api/v1/worker-competencies", async (
             return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
         }
         var items = await legal.ListObligationApplicabilitiesAsync(obligationId, tenantContext.CurrentTenantId.Value, ct);
-        return Results.Ok(items);
-    }).RequireAuthorization();
+                return Results.Ok(items);
+            }).RequireAuthorization();
 
-    // Development seed: subscription plans and their current versions (idempotent).
+        // Asset safety & emergency (AssetReporting module, Trello Sprint 26 R2).
+        app.MapPost("/api/v1/assets", async (
+            CreateAssetRequest request,
+            ClaimsPrincipal user,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            IdentityDbContext identityDb,
+            CancellationToken ct) =>
+        {
+            var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+            if (memberId is null || tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+            }
+            var item = await assetSvc.CreateAssetAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+            return Results.Created($"/api/v1/assets/{item.Id}", item);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/v1/assets", async (
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var items = await assetSvc.ListAssetsAsync(tenantContext.CurrentTenantId.Value, ct);
+            return Results.Ok(items);
+        }).RequireAuthorization();
+
+        app.MapPost("/api/v1/emergency/plans", async (
+            CreateEmergencyPlanRequest request,
+            ClaimsPrincipal user,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            IdentityDbContext identityDb,
+            CancellationToken ct) =>
+        {
+            var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+            if (memberId is null || tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+            }
+            var item = await assetSvc.CreateEmergencyPlanAsync(
+                request with { OwnerMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+            return Results.Created($"/api/v1/emergency/plans/{item.Id}", item);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/v1/emergency/plans", async (
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var items = await assetSvc.ListEmergencyPlansAsync(tenantContext.CurrentTenantId.Value, ct);
+            return Results.Ok(items);
+        }).RequireAuthorization();
+
+        app.MapPost("/api/v1/emergency/team-members", async (
+            AddEmergencyTeamMemberRequest request,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var item = await assetSvc.AddEmergencyTeamMemberAsync(request, tenantContext.CurrentTenantId.Value, ct);
+            return Results.Created($"/api/v1/emergency/team-members/{item.Id}", item);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/v1/emergency/team-members", async (
+            Guid planId,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var items = await assetSvc.ListEmergencyTeamMembersAsync(planId, tenantContext.CurrentTenantId.Value, ct);
+            return Results.Ok(items);
+        }).RequireAuthorization();
+
+        app.MapPost("/api/v1/emergency/equipment", async (
+            CreateEmergencyEquipmentRequest request,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var item = await assetSvc.CreateEmergencyEquipmentAsync(request, tenantContext.CurrentTenantId.Value, ct);
+            return Results.Created($"/api/v1/emergency/equipment/{item.Id}", item);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/v1/emergency/equipment", async (
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var items = await assetSvc.ListEmergencyEquipmentAsync(tenantContext.CurrentTenantId.Value, ct);
+            return Results.Ok(items);
+        }).RequireAuthorization();
+
+        app.MapPost("/api/v1/emergency/drills", async (
+            CreateEmergencyDrillRequest request,
+            ClaimsPrincipal user,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            IdentityDbContext identityDb,
+            CancellationToken ct) =>
+        {
+            var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+            if (memberId is null || tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+            }
+            var item = await assetSvc.CreateEmergencyDrillAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+            return Results.Created($"/api/v1/emergency/drills/{item.Id}", item);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/v1/emergency/drills", async (
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var items = await assetSvc.ListEmergencyDrillsAsync(tenantContext.CurrentTenantId.Value, ct);
+            return Results.Ok(items);
+        }).RequireAuthorization();
+
+        app.MapPost("/api/v1/emergency/drill-findings", async (
+            CreateEmergencyDrillFindingRequest request,
+            ClaimsPrincipal user,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            IdentityDbContext identityDb,
+            CancellationToken ct) =>
+        {
+            var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+            if (memberId is null || tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+            }
+            var item = await assetSvc.CreateEmergencyDrillFindingAsync(
+                request with { OwnerMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+            return Results.Created($"/api/v1/emergency/drill-findings/{item.Id}", item);
+        }).RequireAuthorization();
+
+        app.MapGet("/api/v1/emergency/drill-findings", async (
+            Guid drillId,
+            IAssetEmergencyService assetSvc,
+            Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+            CancellationToken ct) =>
+        {
+            if (tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+            }
+            var items = await assetSvc.ListEmergencyDrillFindingsAsync(drillId, tenantContext.CurrentTenantId.Value, ct);
+            return Results.Ok(items);
+        }).RequireAuthorization();
+
+        // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
     using var seedScope = app.Services.CreateScope();

@@ -1,1 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" /><ProjectReference Include="../Domain/Ehsms.Modules.AssetReporting.Domain.csproj" /><ProjectReference Include="../Application/Ehsms.Modules.AssetReporting.Application.csproj" /><ProjectReference Include="../Contracts/Ehsms.Modules.AssetReporting.Contracts.csproj" /><ProjectReference Include="../../../BuildingBlocks/Ehsms.BuildingBlocks.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Ehsms.Modules.AssetReporting.Domain.csproj" />
+    <ProjectReference Include="..\Application\Ehsms.Modules.AssetReporting.Application.csproj" />
+    <ProjectReference Include="..\Contracts\Ehsms.Modules.AssetReporting.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ehsms.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\Platform\Contracts\Ehsms.Modules.Platform.Contracts.csproj" />
+  </ItemGroup>
+</Project>
