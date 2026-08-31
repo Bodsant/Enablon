@@ -137,6 +137,9 @@
           "Ehsms.BuildingBlocks": "[1.0.0, )"
         }
       },
+      "ehsms.modules.platform.contracts": {
+        "type": "Project"
+      },
       "Microsoft.EntityFrameworkCore": {
         "type": "CentralTransitive",
         "requested": "[8.0.11, )",

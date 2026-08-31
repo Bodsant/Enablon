@@ -988,4 +988,96 @@ CREATE TABLE IF NOT EXISTS compliance.obligation_applicability (
 );
 
 CREATE INDEX IF NOT EXISTS idx_obligation_applicability_tenant
-    ON compliance.obligation_applicability (tenant_id);
+    ON compliance.obligation_applicability (tenant_id);-- ====================== Asset Safety & Emergency ======================
+-- Trello Sprint 26 (R2). AssetReporting 'asset' + 'emergency' schemas. Idempotent; no cross-schema FKs.
+CREATE SCHEMA IF NOT EXISTS asset;
+
+CREATE TABLE IF NOT EXISTS asset.assets (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    record_id          uuid NOT NULL,
+    source_system      text,
+    source_id          text,
+    asset_code         text NOT NULL,
+    asset_name         text NOT NULL,
+    asset_type         text,
+    site_id            uuid NOT NULL,
+    location_id        uuid,
+    is_safety_critical boolean NOT NULL DEFAULT false,
+    status             text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_assets_tenant
+    ON asset.assets (tenant_id);
+
+CREATE SCHEMA IF NOT EXISTS emergency;
+
+CREATE TABLE IF NOT EXISTS emergency.plans (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    record_id       uuid NOT NULL,
+    code            text NOT NULL,
+    name            text NOT NULL,
+    site_id         uuid NOT NULL,
+    owner_member_id uuid NOT NULL,
+    status          text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_plans_tenant
+    ON emergency.plans (tenant_id);
+
+CREATE TABLE IF NOT EXISTS emergency.team_members (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    emergency_plan_id uuid NOT NULL,
+    person_id         uuid NOT NULL,
+    emergency_role    text NOT NULL,
+    valid_from        date,
+    valid_to          date
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_team_members_tenant
+    ON emergency.team_members (tenant_id);
+
+CREATE TABLE IF NOT EXISTS emergency.equipment (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    site_id              uuid NOT NULL,
+    location_id          uuid,
+    equipment_type       text NOT NULL,
+    asset_id             uuid,
+    inspection_due_date  date,
+    maintenance_due_date date,
+    status               text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_equipment_tenant
+    ON emergency.equipment (tenant_id);
+
+CREATE TABLE IF NOT EXISTS emergency.drills (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    record_id            uuid NOT NULL,
+    emergency_plan_id    uuid NOT NULL,
+    scenario             text NOT NULL,
+    scheduled_at         timestamptz,
+    conducted_at         timestamptz,
+    result_summary       text,
+    coordinator_member_id uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_drills_tenant
+    ON emergency.drills (tenant_id);
+
+CREATE TABLE IF NOT EXISTS emergency.drill_findings (
+    id                uuid PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    record_id         uuid NOT NULL,
+    emergency_drill_id uuid NOT NULL,
+    description       text NOT NULL,
+    severity          text,
+    owner_member_id   uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_drill_findings_tenant
+    ON emergency.drill_findings (tenant_id);
