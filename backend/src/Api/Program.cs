@@ -2819,6 +2819,88 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 var dto = await rbac.CreatePermissionAsync(request, tenantContext.CurrentTenantId.Value, ct);
                                                 return Results.Created($"/api/v1/identities/permissions/{dto.Id}", dto);
                                             }).RequireAuthorization();
+// Access scope & temporary grant (Identity module, Trello Sprint 32 R3).
+                                            app.MapPost("/api/v1/identities/scopes", async (
+                                                CreateAccessScopeRequest request,
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await ascScope.CreateScopeAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/identities/scopes/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/identities/scopes", async (
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ascScope.ListScopesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/members/{memberId:guid}/scopes", async (
+                                                Guid memberId,
+                                                GrantScopeRequest request,
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await ascScope.GrantScopeToMemberAsync(memberId, request.AccessScopeId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/identities/members/{memberId:guid}/scopes", async (
+                                                Guid memberId,
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ascScope.ListMemberScopesAsync(tenantContext.CurrentTenantId.Value, memberId, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/temporary-grants", async (
+                                                CreateTemporaryAccessGrantRequest request,
+                                                IAccessScopeService ascScope,
+                                                ClaimsPrincipal user,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                IdentityDbContext identityDb,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var activeMemberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+                                                if (activeMemberId is null) return Results.Json(new { error = "No active member" }, statusCode: 403);
+                                                var dto = await ascScope.CreateGrantAsync(request, tenantContext.CurrentTenantId.Value, activeMemberId.Value, ct);
+                                                return Results.Created($"/api/v1/identities/temporary-grants/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/identities/temporary-grants", async (
+                                                IAccessScopeService ascScope,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ascScope.ListGrantsAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {

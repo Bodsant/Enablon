@@ -35,6 +35,8 @@ public static class IdentityPersistenceServiceCollectionExtensions
         services.AddScoped<IAccessReviewService, AccessReviewService>();
         // RBAC admin backend (Trello Sprint 31 R3).
         services.AddScoped<IRbacService, RbacService>();
+        // Access scope & temporary grant backend (Trello Sprint 32 R3).
+        services.AddScoped<IAccessScopeService, AccessScopeService>();
 
         return services;
     }
