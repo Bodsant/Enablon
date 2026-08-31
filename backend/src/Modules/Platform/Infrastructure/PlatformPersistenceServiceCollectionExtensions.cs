@@ -54,6 +54,8 @@ public static class PlatformPersistenceServiceCollectionExtensions
         services.AddScoped<IFileService, FileService>();
         // Audit trail read API (Trello Sprint 29 R3). Writes stay internal (AuditLogWriter).
         services.AddScoped<IAuditTrailService, AuditTrailService>();
+        // Data classification & sensitive data (Trello Sprint 34 R3).
+        services.AddScoped<IDataClassificationService, DataClassificationService>();
         services.AddHostedService<PurgeWorker>();
 
         return services;

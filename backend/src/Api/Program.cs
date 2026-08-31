@@ -2933,6 +2933,45 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 var count = await sess.RevokeAllSessionsAsync(userId, ct);
                                                 return Results.Ok(new { revoked = count });
                                             }).RequireAuthorization();
+// Data classification & sensitive data (Platform module, Trello Sprint 34 R3).
+                                            app.MapGet("/api/v1/data-classifications", async (
+                                                IDataClassificationService dataCls,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await dataCls.ListClassificationsAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/data-classifications", async (
+                                                CreateDataClassificationRequest request,
+                                                IDataClassificationService dataCls,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await dataCls.CreateClassificationAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/data-classifications/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/data-classifications/check", async (
+                                                CheckClassificationRequest request,
+                                                IDataClassificationService dataCls,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await dataCls.CheckAsync(request.ClassificationId, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(dto);
+                                            }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
