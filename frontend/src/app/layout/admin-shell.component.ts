@@ -18,6 +18,12 @@ import { AuthService } from '../core/auth.service';
           <a routerLink="/incident" routerLinkActive="active">Incident &amp; CAPA</a>
           <a routerLink="/inspection" routerLinkActive="active">Inspection &amp; Audit</a>
           <a routerLink="/ptw" routerLinkActive="active">PTW / JSA / LOTO</a>
+          <a routerLink="/training" routerLinkActive="active">Training</a>
+          <a routerLink="/health" routerLinkActive="active">Health</a>
+          <a routerLink="/legal" routerLinkActive="active">Legal</a>
+          <a routerLink="/assets" routerLinkActive="active">Assets &amp; Emergency</a>
+          <a routerLink="/reporting" routerLinkActive="active">Reporting &amp; KPI</a>
+          <a routerLink="/integration" routerLinkActive="active">Integration</a>
           <a routerLink="/architecture" routerLinkActive="active">Architecture</a>
         </nav>
         <div class="foot">

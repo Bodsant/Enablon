@@ -45,6 +45,30 @@ export const routes: Routes = [
         path: 'ptw',
         loadComponent: () => import('./features/ptw/ptw-page.component').then(m => m.PtwPageComponent),
       },
+      {
+        path: 'training',
+        loadComponent: () => import('./features/training/training-page.component').then(m => m.TrainingPageComponent),
+      },
+      {
+        path: 'health',
+        loadComponent: () => import('./features/health/health-page.component').then(m => m.HealthPageComponent),
+      },
+      {
+        path: 'legal',
+        loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
+      },
+      {
+        path: 'assets',
+        loadComponent: () => import('./features/asset-emergency/asset-emergency-page.component').then(m => m.AssetEmergencyPageComponent),
+      },
+      {
+        path: 'reporting',
+        loadComponent: () => import('./features/reporting/reporting-page.component').then(m => m.ReportingPageComponent),
+      },
+      {
+        path: 'integration',
+        loadComponent: () => import('./features/integration/integration-page.component').then(m => m.IntegrationPageComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
