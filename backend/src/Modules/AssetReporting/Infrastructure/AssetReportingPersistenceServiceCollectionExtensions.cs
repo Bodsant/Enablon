@@ -23,6 +23,9 @@ public static class AssetReportingPersistenceServiceCollectionExtensions
         // Asset safety & emergency backend (Trello Sprint 26 R2).
         services.AddScoped<IAssetEmergencyService, AssetEmergencyService>();
 
+        // Reporting & KPI backend (Trello Sprint 27 R2).
+        services.AddScoped<IReportingKpiService, ReportingKpiService>();
+
         return services;
     }
 }
