@@ -12,6 +12,8 @@ using Ehsms.Modules.SafetyRisk.Contracts;
 using Ehsms.Modules.SafetyRisk.Infrastructure;
 using Ehsms.Modules.WorkControl.Contracts;
 using Ehsms.Modules.WorkControl.Infrastructure;
+using Ehsms.Modules.ComplianceContracts.Contracts;
+using Ehsms.Modules.ComplianceContracts.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure;
 using Ehsms.Modules.Organisation.Infrastructure.Persistence;
 using Ehsms.Modules.Platform.Application;
@@ -51,6 +53,7 @@ builder.Services.AddSaasPersistence(connectionString);
 builder.Services.AddHealthSafetyPersistence(connectionString);
 builder.Services.AddSafetyRiskPersistence(connectionString);
 builder.Services.AddWorkControlPersistence(connectionString);
+builder.Services.AddComplianceContractsPersistence(connectionString);
 
 // Health checks: the process self-check (live) plus real database reachability (ready).
 builder.Services.AddHealthChecks()
@@ -1674,6 +1677,118 @@ app.MapGet("/api/v1/isolation-plans", async (
         return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
     }
     var items = await svc.ListIsolationPlansAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+// Contractor & Contract Management (ComplianceContracts module, Trello Sprint 19 R2).
+app.MapPost("/api/v1/contractor/companies", async (
+    CreateContractorCompanyRequest request,
+    ClaimsPrincipal user,
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    IdentityDbContext identityDb,
+    CancellationToken ct) =>
+{
+    var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+    if (memberId is null || tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+    }
+    var item = await svc.CreateContractorCompanyAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+    return Results.Created($"/api/v1/contractor/companies/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/contractor/companies", async (
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListContractorCompaniesAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/contractor/contracts", async (
+    CreateContractRequest request,
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await svc.CreateContractAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/contractor/contracts/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/contractor/contracts", async (
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListContractsAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/contractor/workers", async (
+    CreateContractorWorkerRequest request,
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await svc.CreateContractorWorkerAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/contractor/workers/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/contractor/workers", async (
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListContractorWorkersAsync(tenantContext.CurrentTenantId.Value, ct);
+    return Results.Ok(items);
+}).RequireAuthorization();
+
+app.MapPost("/api/v1/contractor/documents", async (
+    CreateContractorDocumentRequest request,
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var item = await svc.CreateContractorDocumentAsync(request, tenantContext.CurrentTenantId.Value, ct);
+    return Results.Created($"/api/v1/contractor/documents/{item.Id}", item);
+}).RequireAuthorization();
+
+app.MapGet("/api/v1/contractor/documents", async (
+    IContractService svc,
+    Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+    CancellationToken ct) =>
+{
+    if (tenantContext.CurrentTenantId is null)
+    {
+        return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+    }
+    var items = await svc.ListContractorDocumentsAsync(tenantContext.CurrentTenantId.Value, ct);
     return Results.Ok(items);
 }).RequireAuthorization();
 

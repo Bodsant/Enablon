@@ -536,6 +536,7 @@
         "type": "Project",
         "dependencies": {
           "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.ComplianceContracts.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.HealthSafety.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.Identity.Infrastructure": "[1.0.0, )",
           "Ehsms.Modules.Organisation.Infrastructure": "[1.0.0, )",
@@ -551,6 +552,34 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.EntityFrameworkCore": "[8.0.11, )"
+        }
+      },
+      "ehsms.modules.compliancecontracts.application": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.ComplianceContracts.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.ComplianceContracts.Domain": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.compliancecontracts.contracts": {
+        "type": "Project"
+      },
+      "ehsms.modules.compliancecontracts.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )"
+        }
+      },
+      "ehsms.modules.compliancecontracts.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Ehsms.BuildingBlocks": "[1.0.0, )",
+          "Ehsms.Modules.ComplianceContracts.Application": "[1.0.0, )",
+          "Ehsms.Modules.ComplianceContracts.Contracts": "[1.0.0, )",
+          "Ehsms.Modules.ComplianceContracts.Domain": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },
       "ehsms.modules.healthsafety.application": {

@@ -463,6 +463,7 @@
           "Ehsms.Modules.ComplianceContracts.Application": "[1.0.0, )",
           "Ehsms.Modules.ComplianceContracts.Contracts": "[1.0.0, )",
           "Ehsms.Modules.ComplianceContracts.Domain": "[1.0.0, )",
+          "Ehsms.Modules.Platform.Contracts": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.11, )"
         }
       },
