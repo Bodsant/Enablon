@@ -2972,6 +2972,44 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 var dto = await dataCls.CheckAsync(request.ClassificationId, tenantContext.CurrentTenantId.Value, ct);
                                                 return Results.Ok(dto);
                                             }).RequireAuthorization();
+// Retention & purge (Platform module, Trello Sprint 35 R3).
+                                            app.MapGet("/api/v1/retention-policies", async (
+                                                IRetentionService ret,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ret.ListPoliciesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/retention-policies", async (
+                                                CreateRetentionPolicyRequest request,
+                                                IRetentionService ret,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var dto = await ret.CreatePolicyAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Created($"/api/v1/retention-policies/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+                                            app.MapGet("/api/v1/retention-policies/purge-candidates", async (
+                                                IRetentionService ret,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ret.GetPurgeCandidatesAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
