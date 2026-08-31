@@ -1080,4 +1080,80 @@ CREATE TABLE IF NOT EXISTS emergency.drill_findings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_emergency_drill_findings_tenant
-    ON emergency.drill_findings (tenant_id);
+    ON emergency.drill_findings (tenant_id);-- ====================== Reporting & KPI ======================
+-- Trello Sprint 27 (R2). AssetReporting 'reporting' schema. Idempotent; no cross-schema FKs.
+CREATE SCHEMA IF NOT EXISTS reporting;
+
+CREATE TABLE IF NOT EXISTS reporting.report_definitions (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    code                text NOT NULL,
+    name                text NOT NULL,
+    report_type         text NOT NULL,
+    dataset_code        text NOT NULL,
+    filter_schema_json  text,
+    required_permission_id uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_definitions_tenant
+    ON reporting.report_definitions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS reporting.report_schedules (
+    id                       uuid PRIMARY KEY,
+    tenant_id                uuid NOT NULL,
+    report_definition_id     uuid NOT NULL,
+    owner_member_id          uuid NOT NULL,
+    schedule_rule            text NOT NULL,
+    delivery_configuration_json text,
+    status                   text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_schedules_tenant
+    ON reporting.report_schedules (tenant_id);
+
+CREATE TABLE IF NOT EXISTS reporting.report_executions (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    report_definition_id uuid NOT NULL,
+    report_schedule_id   uuid,
+    requested_by_member_id uuid,
+    filter_values_json   text,
+    status               text NOT NULL,
+    output_file_object_id uuid,
+    started_at           timestamptz,
+    completed_at         timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_executions_tenant
+    ON reporting.report_executions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS reporting.kpi_definitions (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    code            text NOT NULL,
+    name            text NOT NULL,
+    description     text,
+    owner_member_id uuid NOT NULL,
+    status          text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpi_definitions_tenant
+    ON reporting.kpi_definitions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS reporting.kpi_versions (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    kpi_definition_id    uuid NOT NULL,
+    version_number       integer NOT NULL,
+    formula_expression   text NOT NULL,
+    numerator_definition text,
+    denominator_definition text,
+    factor               numeric,
+    period_rule          text,
+    scope_rule_json      text,
+    effective_from       date,
+    effective_to         date
+);
+
+CREATE INDEX IF NOT EXISTS idx_kpi_versions_tenant
+    ON reporting.kpi_versions (tenant_id);

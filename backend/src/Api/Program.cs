@@ -2372,10 +2372,159 @@ app.MapGet("/api/v1/worker-competencies", async (
                 return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
             }
             var items = await assetSvc.ListEmergencyDrillFindingsAsync(drillId, tenantContext.CurrentTenantId.Value, ct);
-            return Results.Ok(items);
-        }).RequireAuthorization();
+                        return Results.Ok(items);
+                    }).RequireAuthorization();
 
-        // Development seed: subscription plans and their current versions (idempotent).
+                    // Reporting & KPI (AssetReporting module, Trello Sprint 27 R2).
+                    app.MapPost("/api/v1/reports/definitions", async (
+                        CreateReportDefinitionRequest request,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var item = await rpt.CreateReportDefinitionAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Created($"/api/v1/reports/definitions/{item.Id}", item);
+                    }).RequireAuthorization();
+
+                    app.MapGet("/api/v1/reports/definitions", async (
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var items = await rpt.ListReportDefinitionsAsync(tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Ok(items);
+                    }).RequireAuthorization();
+
+                    app.MapPost("/api/v1/reports/schedules", async (
+                        CreateReportScheduleRequest request,
+                        ClaimsPrincipal user,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        IdentityDbContext identityDb,
+                        CancellationToken ct) =>
+                    {
+                        var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+                        if (memberId is null || tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+                        }
+                        var item = await rpt.CreateReportScheduleAsync(
+                            request with { OwnerMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+                        return Results.Created($"/api/v1/reports/schedules/{item.Id}", item);
+                    }).RequireAuthorization();
+
+                    app.MapGet("/api/v1/reports/schedules", async (
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var items = await rpt.ListReportSchedulesAsync(tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Ok(items);
+                    }).RequireAuthorization();
+
+                    app.MapPost("/api/v1/reports/executions", async (
+                        CreateReportExecutionRequest request,
+                        ClaimsPrincipal user,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        IdentityDbContext identityDb,
+                        CancellationToken ct) =>
+                    {
+                        var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+                        if (memberId is null || tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+                        }
+                        var item = await rpt.CreateReportExecutionAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+                        return Results.Created($"/api/v1/reports/executions/{item.Id}", item);
+                    }).RequireAuthorization();
+
+                    app.MapGet("/api/v1/reports/executions", async (
+                        Guid reportDefinitionId,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var items = await rpt.ListReportExecutionsAsync(reportDefinitionId, tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Ok(items);
+                    }).RequireAuthorization();
+
+                    app.MapPost("/api/v1/kpis", async (
+                        CreateKpiDefinitionRequest request,
+                        ClaimsPrincipal user,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        IdentityDbContext identityDb,
+                        CancellationToken ct) =>
+                    {
+                        var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+                        if (memberId is null || tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+                        }
+                        var item = await rpt.CreateKpiDefinitionAsync(
+                            request with { OwnerMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+                        return Results.Created($"/api/v1/kpis/{item.Id}", item);
+                    }).RequireAuthorization();
+
+                    app.MapGet("/api/v1/kpis", async (
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var items = await rpt.ListKpiDefinitionsAsync(tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Ok(items);
+                    }).RequireAuthorization();
+
+                    app.MapPost("/api/v1/kpis/versions", async (
+                        CreateKpiVersionRequest request,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var item = await rpt.CreateKpiVersionAsync(request, tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Created($"/api/v1/kpis/versions/{item.Id}", item);
+                    }).RequireAuthorization();
+
+                    app.MapGet("/api/v1/kpis/versions", async (
+                        Guid kpiDefinitionId,
+                        IReportingKpiService rpt,
+                        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                        CancellationToken ct) =>
+                    {
+                        if (tenantContext.CurrentTenantId is null)
+                        {
+                            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                        }
+                        var items = await rpt.ListKpiVersionsAsync(kpiDefinitionId, tenantContext.CurrentTenantId.Value, ct);
+                        return Results.Ok(items);
+                    }).RequireAuthorization();
+
+                    // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
     using var seedScope = app.Services.CreateScope();
