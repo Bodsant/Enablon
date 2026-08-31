@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Ehsms.Api.Authentication;
 using Ehsms.Api.HealthChecks;
+using Ehsms.Api.Middleware;
 using Ehsms.BuildingBlocks.Tenancy;
 using Ehsms.Modules.Identity.Contracts;
 using Ehsms.Modules.Identity.Infrastructure;
@@ -144,6 +145,7 @@ app.Use(async (context, next) =>
 // (fail-closed: no tenant claim => no tenant => tenant-scoped queries return empty).
 app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseSecurityHeaders();
 app.UseAuthorization();
 
 app.MapGet("/api/v1/architecture/info", () => Results.Ok(new
