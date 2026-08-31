@@ -22,14 +22,11 @@ public sealed class FileLifecycleTests : IClassFixture<WebApplicationFactory<Pro
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         client.DefaultRequestHeaders.Authorization = new("Bearer", (await login.Content.ReadFromJsonAsync<LoginPayload>())!.AccessToken);
 
-        // 1. Create a record so we can attach evidence.
-        Guid tenantId;
+        // 1. Create a record so we can attach evidence. Its TenantId (the active admin
+        //    tenant) is later compared against the uploaded file object's tenant — never
+        //    assume "first tenant by Id", because other tests may seed extra tenants into
+        //    the shared CI database (see PersistenceMappingTests).
         Guid recordId;
-        await using (var scope = _factory.Services.CreateAsyncScope())
-        {
-            var saas = scope.ServiceProvider.GetRequiredService<Ehsms.Modules.Saas.Infrastructure.Persistence.SaasDbContext>();
-            tenantId = (await saas.Tenants.OrderBy(t => t.Id).FirstOrDefaultAsync())!.Id;
-        }
         var createRec = await client.PostAsJsonAsync("/api/v1/platform/records",
             new { moduleCode = "HSE", recordType = "INCIDENT", title = "Evidence test record", dataClassificationId = Guid.NewGuid() });
         Assert.Equal(HttpStatusCode.Created, createRec.StatusCode);
@@ -47,9 +44,11 @@ public sealed class FileLifecycleTests : IClassFixture<WebApplicationFactory<Pro
         {
             var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
             var obj = await db.FileObjects.FirstAsync(f => f.Id == fileId);
+            // The file object must land on the same tenant as the record it is evidence for.
+            var record = await db.Records.FirstAsync(r => r.Id == recordId);
+            Assert.Equal(record.TenantId, obj.TenantId);
             Assert.Equal("Active", obj.Status);
             Assert.Equal(bytes.Length, obj.ObjectSizeBytes);
-            Assert.Equal(tenantId, obj.TenantId);
         }
 
         // 3. Link the file as evidence to the record.
