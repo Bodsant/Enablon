@@ -2071,10 +2071,129 @@ app.MapGet("/api/v1/worker-competencies", async (
         return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
     }
     var items = await svc.ListWorkerCompetenciesAsync(personId, tenantContext.CurrentTenantId.Value, ct);
-    return Results.Ok(items);
-}).RequireAuthorization();
+        return Results.Ok(items);
+    }).RequireAuthorization();
 
-// Development seed: subscription plans and their current versions (idempotent).
+    // Legal & compliance (ComplianceContracts module, Trello Sprint 25 R2).
+    app.MapPost("/api/v1/legal/sources", async (
+        CreateLegalSourceRequest request,
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        CancellationToken ct) =>
+    {
+        if (tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+        }
+        var item = await legal.CreateLegalSourceAsync(request, tenantContext.CurrentTenantId.Value, ct);
+        return Results.Created($"/api/v1/legal/sources/{item.Id}", item);
+    }).RequireAuthorization();
+
+    app.MapGet("/api/v1/legal/sources", async (
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        CancellationToken ct) =>
+    {
+        if (tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+        }
+        var items = await legal.ListLegalSourcesAsync(tenantContext.CurrentTenantId.Value, ct);
+        return Results.Ok(items);
+    }).RequireAuthorization();
+
+    app.MapPost("/api/v1/legal/source-versions", async (
+        CreateLegalSourceVersionRequest request,
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        CancellationToken ct) =>
+    {
+        if (tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+        }
+        var item = await legal.CreateLegalSourceVersionAsync(request, tenantContext.CurrentTenantId.Value, ct);
+        return Results.Created($"/api/v1/legal/source-versions/{item.Id}", item);
+    }).RequireAuthorization();
+
+    app.MapGet("/api/v1/legal/source-versions", async (
+        Guid legalSourceId,
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        CancellationToken ct) =>
+    {
+        if (tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+        }
+        var items = await legal.ListLegalSourceVersionsAsync(legalSourceId, tenantContext.CurrentTenantId.Value, ct);
+        return Results.Ok(items);
+    }).RequireAuthorization();
+
+    app.MapPost("/api/v1/legal/obligations", async (
+        CreateObligationRequest request,
+        ClaimsPrincipal user,
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        IdentityDbContext identityDb,
+        CancellationToken ct) =>
+    {
+        var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+            if (memberId is null || tenantContext.CurrentTenantId is null)
+            {
+                return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+            }
+            var item = await legal.CreateObligationAsync(
+                request with { OwnerMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+            return Results.Created($"/api/v1/legal/obligations/{item.Id}", item);
+        }).RequireAuthorization();
+
+    app.MapGet("/api/v1/legal/obligations", async (
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        CancellationToken ct) =>
+    {
+        if (tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+        }
+        var items = await legal.ListObligationsAsync(tenantContext.CurrentTenantId.Value, ct);
+        return Results.Ok(items);
+    }).RequireAuthorization();
+
+    app.MapPost("/api/v1/legal/obligation-applicability", async (
+        CreateObligationApplicabilityRequest request,
+        ClaimsPrincipal user,
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        IdentityDbContext identityDb,
+        CancellationToken ct) =>
+    {
+        var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+        if (memberId is null || tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No active member/tenant" }, statusCode: 400);
+        }
+        var item = await legal.CreateObligationApplicabilityAsync(
+            request with { AssessedByMemberId = memberId.Value }, tenantContext.CurrentTenantId.Value, ct);
+        return Results.Created($"/api/v1/legal/obligation-applicability/{item.Id}", item);
+    }).RequireAuthorization();
+
+    app.MapGet("/api/v1/legal/obligation-applicability", async (
+        Guid obligationId,
+        ILegalComplianceService legal,
+        Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+        CancellationToken ct) =>
+    {
+        if (tenantContext.CurrentTenantId is null)
+        {
+            return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+        }
+        var items = await legal.ListObligationApplicabilitiesAsync(obligationId, tenantContext.CurrentTenantId.Value, ct);
+        return Results.Ok(items);
+    }).RequireAuthorization();
+
+    // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
     using var seedScope = app.Services.CreateScope();

@@ -925,3 +925,67 @@ CREATE TABLE IF NOT EXISTS health.followups (
 
 CREATE INDEX IF NOT EXISTS idx_followups_tenant
     ON health.followups (tenant_id);
+-- ====================== Legal & Compliance ======================
+-- Trello Sprint 25 (R2). ComplianceContracts 'compliance' schema. Idempotent; no cross-schema FKs.
+CREATE SCHEMA IF NOT EXISTS compliance;
+
+CREATE TABLE IF NOT EXISTS compliance.legal_sources (
+    id           uuid PRIMARY KEY,
+    tenant_id    uuid NOT NULL,
+    source_type  text NOT NULL,
+    code         text,
+    title        text NOT NULL,
+    jurisdiction text,
+    publisher    text,
+    source_url   text,
+    status       text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_legal_sources_tenant
+    ON compliance.legal_sources (tenant_id);
+
+CREATE TABLE IF NOT EXISTS compliance.legal_source_versions (
+    id               uuid PRIMARY KEY,
+    tenant_id        uuid NOT NULL,
+    legal_source_id  uuid NOT NULL,
+    version_label    text NOT NULL,
+    published_date   date,
+    effective_date   date,
+    superseded_date  date,
+    change_summary   text
+);
+
+CREATE INDEX IF NOT EXISTS idx_legal_source_versions_tenant
+    ON compliance.legal_source_versions (tenant_id);
+
+CREATE TABLE IF NOT EXISTS compliance.obligations (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    record_id             uuid NOT NULL,
+    legal_source_version_id uuid NOT NULL,
+    clause_reference      text,
+    requirement_text      text NOT NULL,
+    owner_member_id       uuid NOT NULL,
+    frequency             text,
+    due_date              date,
+    last_review           date,
+    next_review           date
+);
+
+CREATE INDEX IF NOT EXISTS idx_obligations_tenant
+    ON compliance.obligations (tenant_id);
+
+CREATE TABLE IF NOT EXISTS compliance.obligation_applicability (
+    id                  uuid PRIMARY KEY,
+    tenant_id           uuid NOT NULL,
+    obligation_id       uuid NOT NULL,
+    company_id          uuid,
+    business_unit_id    uuid,
+    site_id             uuid,
+    applicability_status text NOT NULL,
+    rationale           text,
+    assessed_by_member_id uuid NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_obligation_applicability_tenant
+    ON compliance.obligation_applicability (tenant_id);
