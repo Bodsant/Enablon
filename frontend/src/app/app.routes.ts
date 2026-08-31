@@ -29,6 +29,10 @@ export const routes: Routes = [
         path: 'architecture',
         loadComponent: () => import('./features/architecture/architecture-page.component').then(m => m.ArchitecturePageComponent),
       },
+      {
+        path: 'risk',
+        loadComponent: () => import('./features/risk/risk-page.component').then(m => m.RiskPageComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
