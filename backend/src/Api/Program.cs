@@ -2901,6 +2901,38 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 var items = await ascScope.ListGrantsAsync(tenantContext.CurrentTenantId.Value, ct);
                                                 return Results.Ok(items);
                                             }).RequireAuthorization();
+// Session / refresh-token management (Identity module, Trello Sprint 33 R3).
+                                            app.MapGet("/api/v1/identities/sessions", async (
+                                                ISessionService sess,
+                                                ClaimsPrincipal user,
+                                                CancellationToken ct) =>
+                                            {
+                                                var sub = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                if (!Guid.TryParse(sub, out var userId)) return Results.Json(new { error = "Invalid user identity" }, statusCode: 401);
+                                                var items = await sess.ListSessionsAsync(userId, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/sessions/{tokenId:guid}/revoke", async (
+                                                Guid tokenId,
+                                                ISessionService sess,
+                                                ClaimsPrincipal user,
+                                                CancellationToken ct) =>
+                                            {
+                                                var sub = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                if (!Guid.TryParse(sub, out var userId)) return Results.Json(new { error = "Invalid user identity" }, statusCode: 401);
+                                                var ok = await sess.RevokeSessionAsync(userId, tokenId, ct);
+                                                return ok ? Results.NoContent() : Results.NotFound();
+                                            }).RequireAuthorization();
+                                            app.MapPost("/api/v1/identities/sessions/revoke-all", async (
+                                                ISessionService sess,
+                                                ClaimsPrincipal user,
+                                                CancellationToken ct) =>
+                                            {
+                                                var sub = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                                if (!Guid.TryParse(sub, out var userId)) return Results.Json(new { error = "Invalid user identity" }, statusCode: 401);
+                                                var count = await sess.RevokeAllSessionsAsync(userId, ct);
+                                                return Results.Ok(new { revoked = count });
+                                            }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
