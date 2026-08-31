@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Ehsms.Api.Authentication;
 using Ehsms.Api.HealthChecks;
 using Ehsms.BuildingBlocks.Tenancy;
+using Ehsms.Modules.Identity.Contracts;
 using Ehsms.Modules.Identity.Infrastructure;
 using Ehsms.Modules.Identity.Infrastructure.Authentication;
 using Ehsms.Modules.Identity.Infrastructure.Persistence;
@@ -2685,6 +2686,41 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 return Results.Ok(items);
                                             }).RequireAuthorization();
 
+
+                                            // Access review (Identity module, Trello Sprint 30 R3).
+                                            app.MapPost("/api/v1/access-reviews", async (
+                                                CreateAccessReviewRequest request,
+                                                IAccessReviewService ar,
+                                                ClaimsPrincipal user,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                IdentityDbContext identityDb,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var memberId = await ResolveActiveMemberIdAsync(user, tenantContext, identityDb, ct);
+                                                if (memberId is null)
+                                                {
+                                                    return Results.Json(new { error = "No active member" }, statusCode: 403);
+                                                }
+                                                var dto = await ar.CreateAsync(request, tenantContext.CurrentTenantId.Value, memberId.Value, ct);
+                                                return Results.Created($"/api/v1/access-reviews/{dto.Id}", dto);
+                                            }).RequireAuthorization();
+
+                                            app.MapGet("/api/v1/access-reviews", async (
+                                                IAccessReviewService ar,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var items = await ar.ListAsync(tenantContext.CurrentTenantId.Value, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
