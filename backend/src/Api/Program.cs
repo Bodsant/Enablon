@@ -2664,6 +2664,27 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 return Results.Ok(items);
                                             }).RequireAuthorization();
 
+                                            // Audit trail (Platform module, Trello Sprint 29 R3) — read-only, append-only.
+                                            app.MapGet("/api/v1/audit-logs", async (
+                                                Guid? recordId,
+                                                string? actionCode,
+                                                DateTimeOffset? from,
+                                                DateTimeOffset? to,
+                                                int limit,
+                                                IAuditTrailService audit,
+                                                Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
+                                                CancellationToken ct) =>
+                                            {
+                                                if (tenantContext.CurrentTenantId is null)
+                                                {
+                                                    return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
+                                                }
+                                                var safeLimit = Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+                                                var items = await audit.ListAsync(
+                                                    tenantContext.CurrentTenantId.Value, recordId, actionCode, from, to, safeLimit, ct);
+                                                return Results.Ok(items);
+                                            }).RequireAuthorization();
+
                                             // Development seed: subscription plans and their current versions (idempotent).
 if (app.Environment.IsDevelopment())
 {
