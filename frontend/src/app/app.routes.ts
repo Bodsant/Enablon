@@ -41,6 +41,10 @@ export const routes: Routes = [
         path: 'inspection',
         loadComponent: () => import('./features/inspection/inspection-page.component').then(m => m.InspectionPageComponent),
       },
+      {
+        path: 'ptw',
+        loadComponent: () => import('./features/ptw/ptw-page.component').then(m => m.PtwPageComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
