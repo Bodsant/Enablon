@@ -55,6 +55,9 @@ public static class HealthSafetyPersistenceServiceCollectionExtensions
         // Environment monitoring (parameters, sources, measurements).
         services.AddScoped<IEnvironmentMonitoringService, EnvironmentMonitoringService>();
 
+        // Occupational health (profiles, fitness, surveillance programs/events, follow-ups).
+        services.AddScoped<IOccupationalHealthService, OccupationalHealthService>();
+
         return services;
     }
 }

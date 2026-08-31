@@ -857,3 +857,71 @@ CREATE TABLE IF NOT EXISTS training.worker_competencies (
 
 CREATE INDEX IF NOT EXISTS idx_worker_competencies_tenant
     ON training.worker_competencies (tenant_id);
+
+-- ====================== Occupational Health ======================
+-- Trello Sprint 22 (R2). HealthSafety module 'health' schema. Idempotent; no cross-schema FKs.
+CREATE TABLE IF NOT EXISTS health.profiles (
+    id                    uuid PRIMARY KEY,
+    tenant_id             uuid NOT NULL,
+    person_id             uuid NOT NULL,
+    restricted_identifier text,
+    data_classification_id uuid NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_tenant
+    ON health.profiles (tenant_id);
+
+CREATE TABLE IF NOT EXISTS health.fitness_statuses (
+    id                 uuid PRIMARY KEY,
+    tenant_id          uuid NOT NULL,
+    health_profile_id  uuid NOT NULL,
+    fitness_status     text NOT NULL,
+    valid_from         date NOT NULL,
+    valid_until        date,
+    restrictions_summary text,
+    issued_by_member_id uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_fitness_statuses_tenant
+    ON health.fitness_statuses (tenant_id);
+
+CREATE TABLE IF NOT EXISTS health.surveillance_programs (
+    id              uuid PRIMARY KEY,
+    tenant_id       uuid NOT NULL,
+    code            text NOT NULL,
+    name            text NOT NULL,
+    exposure_type   text,
+    frequency_months integer,
+    status          text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_surveillance_programs_tenant
+    ON health.surveillance_programs (tenant_id);
+
+CREATE TABLE IF NOT EXISTS health.surveillance_events (
+    id                     uuid PRIMARY KEY,
+    tenant_id              uuid NOT NULL,
+    record_id              uuid NOT NULL,
+    health_profile_id      uuid NOT NULL,
+    surveillance_program_id uuid NOT NULL,
+    scheduled_date         date,
+    completed_date         date,
+    authorized_provider    text,
+    result_summary_code    text
+);
+
+CREATE INDEX IF NOT EXISTS idx_surveillance_events_tenant
+    ON health.surveillance_events (tenant_id);
+
+CREATE TABLE IF NOT EXISTS health.followups (
+    id                   uuid PRIMARY KEY,
+    tenant_id            uuid NOT NULL,
+    surveillance_event_id uuid NOT NULL,
+    followup_type        text NOT NULL,
+    due_date             date,
+    status               text NOT NULL,
+    assigned_member_id   uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_followups_tenant
+    ON health.followups (tenant_id);
