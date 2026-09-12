@@ -19,6 +19,14 @@ import { AuthService } from '../core/auth.service';
           <a routerLink="/inspection" routerLinkActive="active">Inspection &amp; Audit</a>
           <a routerLink="/ptw" routerLinkActive="active">PTW / JSA / LOTO</a>
           <a routerLink="/architecture" routerLinkActive="active">Architecture</a>
+          <a routerLink="/audit-trail" routerLinkActive="active">Audit trail</a>
+          <a routerLink="/access-review" routerLinkActive="active">Access review</a>
+          <a routerLink="/rbac" routerLinkActive="active">RBAC admin</a>
+          <a routerLink="/access-scope" routerLinkActive="active">Access scopes</a>
+          <a routerLink="/sessions" routerLinkActive="active">Sessions</a>
+          <a routerLink="/data-classification" routerLinkActive="active">Data classification</a>
+          <a routerLink="/retention" routerLinkActive="active">Retention</a>
+          <a routerLink="/security-headers" routerLinkActive="active">Security headers</a>
         </nav>
         <div class="foot">
           <span class="who">{{ email }}</span>

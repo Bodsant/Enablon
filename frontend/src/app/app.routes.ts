@@ -45,6 +45,38 @@ export const routes: Routes = [
         path: 'ptw',
         loadComponent: () => import('./features/ptw/ptw-page.component').then(m => m.PtwPageComponent),
       },
+      {
+        path: 'audit-trail',
+        loadComponent: () => import('./features/audit-trail/audit-trail-page.component').then(m => m.AuditTrailPageComponent),
+      },
+      {
+        path: 'access-review',
+        loadComponent: () => import('./features/access-review/access-review-page.component').then(m => m.AccessReviewPageComponent),
+      },
+      {
+        path: 'rbac',
+        loadComponent: () => import('./features/rbac-admin/rbac-admin-page.component').then(m => m.RbacAdminPageComponent),
+      },
+      {
+        path: 'access-scope',
+        loadComponent: () => import('./features/access-scope/access-scope-page.component').then(m => m.AccessScopePageComponent),
+      },
+      {
+        path: 'sessions',
+        loadComponent: () => import('./features/session-mgmt/session-mgmt-page.component').then(m => m.SessionMgmtPageComponent),
+      },
+      {
+        path: 'data-classification',
+        loadComponent: () => import('./features/data-classification/data-classification-page.component').then(m => m.DataClassificationPageComponent),
+      },
+      {
+        path: 'retention',
+        loadComponent: () => import('./features/retention/retention-page.component').then(m => m.RetentionPageComponent),
+      },
+      {
+        path: 'security-headers',
+        loadComponent: () => import('./features/security-headers/security-headers-page.component').then(m => m.SecurityHeadersPageComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
