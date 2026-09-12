@@ -2673,7 +2673,7 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 string? actionCode,
                                                 DateTimeOffset? from,
                                                 DateTimeOffset? to,
-                                                int limit,
+                                                int? limit,
                                                 IAuditTrailService audit,
                                                 Ehsms.BuildingBlocks.Tenancy.ITenantContext tenantContext,
                                                 CancellationToken ct) =>
@@ -2682,7 +2682,7 @@ app.MapGet("/api/v1/worker-competencies", async (
                                                 {
                                                     return Results.Json(new { error = "No tenant resolved (fail-closed)" }, statusCode: 400);
                                                 }
-                                                var safeLimit = Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+                                                var safeLimit = Math.Clamp((limit ?? 0) <= 0 ? 100 : limit!.Value, 1, 500);
                                                 var items = await audit.ListAsync(
                                                     tenantContext.CurrentTenantId.Value, recordId, actionCode, from, to, safeLimit, ct);
                                                 return Results.Ok(items);
